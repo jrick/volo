@@ -47,10 +47,6 @@ public:
 // widget so it may be used in combination with other GTK widgets.
 class WebView : public Gtk::Widget {
 private:
-	// Raw pointer to the underlying C object.  This is added to the
-	// derived bin and shown.
-	WebKitWebView * const wv;
-
 	// Signals.
 	sigc::signal<void, WebKitLoadEvent> signal_load_changed;
 
@@ -59,9 +55,8 @@ public:
 	// default constructor will load the blank about page, but a string
 	// any other URI may be specified to begin loading the resource as the
 	// WebView is created.
-	WebView();
+	WebView() : WebView{WEBKIT_WEB_VIEW(webkit_web_view_new())} {}
 	WebView(const Glib::ustring&);
-	WebView(WebKitWebView *wv_) : wv{wv_} {}
 
 	// load_uri begins the loading the URI described by uri in the WebView.
 	//
@@ -74,6 +69,14 @@ public:
 
 	// Slot..
 	void on_load_changed(WebKitLoadEvent);
+
+protected:
+	// Constructor to create a WebView from a C pointer.
+	WebView(WebKitWebView *wv) : Gtk::Widget{GTK_WIDGET(wv)} {}
+
+	// Accessor methods for the underlying GObject.
+	WebKitWebView * gobj() { return reinterpret_cast<WebKitWebView *>(gobject_); }
+	const WebKitWebView * gobj() const { return reinterpret_cast<WebKitWebView *>(gobject_); }
 };
 
 

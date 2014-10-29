@@ -20,22 +20,12 @@ void WebContext::set_process_model(WebKitProcessModel model) {
 }
 
 
-WebView::WebView() : WebView{blank_page} {}
-
-WebView::WebView(const Glib::ustring& uri) : wv{WEBKIT_WEB_VIEW(webkit_web_view_new())} {
-	// Create underlying webview and wrap in a gtkmm widget.  Destruction
-	// of the widget is delegated to the derived container.
-	const auto mw = Gtk::manage(Glib::wrap(GTK_WIDGET(wv)));
-	mw->show();
-	add(*mw);
-
+WebView::WebView(const Glib::ustring& uri) : WebView{} {
 	load_uri(uri);
 }
 
-WebView::WebView
-
 void WebView::load_uri(const Glib::ustring& uri) {
-	webkit_web_view_load_uri(wv, uri.c_str());
+	webkit_web_view_load_uri(gobj(), uri.c_str());
 }
 
 static void WebView_connect_load_changed_callback(WebKitWebView *wv,
@@ -46,7 +36,7 @@ static void WebView_connect_load_changed_callback(WebKitWebView *wv,
 }
 
 sigc::connection WebView::connect_load_changed(std::function<void(WebKitLoadEvent)> handler) {
-	g_signal_connect(wv, "load-changed",
+	g_signal_connect(gobj(), "load-changed",
 		G_CALLBACK(WebView_connect_load_changed_callback),
 		&signal_load_changed);
 	return signal_load_changed.connect(handler);
