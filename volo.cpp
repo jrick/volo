@@ -21,7 +21,6 @@ void WebContext::set_process_model(WebKitProcessModel model) {
 static void WebView_load_changed_callback(WebKitWebView *wv,
 	WebKitLoadEvent ev, gpointer signal) {
 
-	// TODO: only emit once, no matter how many times this was connected.
 	static_cast<sigc::signal<void, WebKitLoadEvent> *>(signal)->emit(ev);
 }
 
