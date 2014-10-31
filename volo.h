@@ -31,6 +31,9 @@ T* make_managed(Args&&... args) {
 // WebContext wraps the default WebKitWebContext.  Non-default contexts may be
 // representable in later versions of WebKitGTK, but as of 2.6, it appears that
 // only the default context ever exists.
+//
+// Additional details regarding the methods wrapped by this class can be
+// found at: http://webkitgtk.org/reference/webkit2gtk/stable/WebKitWebContext.html
 class WebContext {
 private:
 	// Underlying web context.
@@ -48,9 +51,6 @@ public:
 	//
 	// It is unsafe to change the process model after WebViews have been
 	// created.
-	//
-	// See http://webkitgtk.org/reference/webkit2gtk/stable/WebKitWebContext.html#webkit-web-context-set-process-model
-	// for additional details.
 	void set_process_model(WebKitProcessModel);
 
 protected:
@@ -80,6 +80,8 @@ public:
 	// WebView is created.
 	WebView() : WebView{reinterpret_cast<WebKitWebView *>(webkit_web_view_new())} {}
 	WebView(const Glib::ustring&);
+
+	// TODO(jrick): destructor?
 
 	// load_uri begins the loading the URI described by uri in the WebView.
 	void load_uri(const Glib::ustring&);

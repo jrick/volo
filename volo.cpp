@@ -2,8 +2,8 @@
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
-#include <volo.h>
 #include <iostream>
+#include <volo.h>
 
 using namespace volo;
 
@@ -66,11 +66,15 @@ void WebView::go_forward() {
 	webkit_web_view_go_forward(gobj());
 };
 
-sigc::connection WebView::connect_load_changed(std::function<void(WebKitLoadEvent)> handler) {
+sigc::connection WebView::connect_load_changed(
+	std::function<void(WebKitLoadEvent)> handler) {
+
 	return signal_load_changed.connect(handler);
 }
 
-sigc::connection WebView::connect_back_forward_list_changed(std::function<void(WebKitBackForwardList *)> handler) {
+sigc::connection WebView::connect_back_forward_list_changed(
+	std::function<void(WebKitBackForwardList *)> handler) {
+
 	return signal_back_forward_list_changed.connect(handler);
 }
 
@@ -134,9 +138,9 @@ Browser::Browser(const std::vector<Glib::ustring>& uris) {
 }
 
 int Browser::open_uri(const Glib::ustring& uri) {
-	const auto tab  = make_managed<Gtk::Grid>();
-	const auto title = make_managed<Gtk::Label>("New tab");
-	const auto close = make_managed<Gtk::Button>();
+	auto tab  = make_managed<Gtk::Grid>();
+	auto title = make_managed<Gtk::Label>("New tab");
+	auto close = make_managed<Gtk::Button>();
 
 	close->set_image_from_icon_name("window-close");
 
@@ -146,12 +150,38 @@ int Browser::open_uri(const Glib::ustring& uri) {
 
 	tab->add(*title);
 	tab->add(*close);
-	tab->show_all_children();
 
 	webviews.emplace_back(std::make_unique<WebView>(uri));
-	const auto& back_iter = webviews.back();
-	const auto n = nb.append_page(*back_iter, *tab);
-	nb.set_tab_reorderable(*back_iter, true);
+	const auto& wv = webviews.back();
+	wv->show_all();
+	tab->show_all();
+	const auto n = nb.append_page(*wv, *tab);
+	nb.set_tab_reorderable(*wv, true);
+
+	close->signal_clicked().connect([this, &wv = *wv] {
+		// NOTE: This is very fast because it does not need to
+		// dereference every pointer in the webviews vector, but it
+		// relies on the WebView RAII handle never being moved.
+		// Currently this is safe because moving for this type is
+		// disabled (no move constructors or assignment operators
+		// exist).
+		for (auto i = webviews.begin(); i != webviews.end(); ++i) {
+			// Compare using pointer equality.  We intentionally
+			// captured a reference to the WebView, and not the
+			// unique_ptr<WebView>, so that we could take the
+			// address of the actual WebView object without the
+			// unique_ptr having been zeroed after a move.
+			if (i->get() != &wv) {
+				continue;
+			}
+			webviews.erase(i);
+			break;
+		}
+		if (webviews.size() == 0) {
+ 			switch_page(open_uri("https://duckduckgo.com/lite"));
+		}
+	});
+
 	return n;
 }
 
@@ -166,14 +196,12 @@ void Browser::show_webview(WebView& wv) {
 		back.signal_clicked().connect([&wv] { wv.go_back(); }),
 		fwd.signal_clicked().connect([&wv] { wv.go_forward(); }),
 		wv.connect_load_changed(sigc::mem_fun(wv, &WebView::on_load_changed)),
-		wv.connect_back_forward_list_changed([&](WebKitBackForwardList *bfl) {
-			if (current_page.bfl != bfl) {
-				std::cout << "oops\n";
-				return;
+		wv.connect_back_forward_list_changed([this](WebKitBackForwardList *bfl) {
+			if (current_page.bfl == bfl) {
+				update_histnav(*current_page.webview);
 			}
-			update_histnav(*current_page.webview);
 		}),
-		wv.connect_notify_title([&] { update_title(wv); }),
+		wv.connect_notify_title([this, &wv] { update_title(wv); }),
 	} };
 }
 
