@@ -31,6 +31,10 @@ static void BackForwardList_changed_callback(WebKitBackForwardList *list,
 	static_cast<sigc::signal<void, WebKitBackForwardList *> *>(signal)->emit(list);
 }
 
+static void WebView_notify_title_callback(GObject *, GParamSpec *, gpointer signal) {
+	static_cast<sigc::signal<void> *>(signal)->emit();
+}
+
 WebView::WebView(WebKitWebView *wv) : Gtk::Widget{GTK_WIDGET(wv)} {
 	g_signal_connect(wv, "load-changed",
 		G_CALLBACK(WebView_load_changed_callback),
@@ -40,6 +44,10 @@ WebView::WebView(WebKitWebView *wv) : Gtk::Widget{GTK_WIDGET(wv)} {
 	g_signal_connect(bfl, "changed",
 		G_CALLBACK(BackForwardList_changed_callback),
 		&signal_back_forward_list_changed);
+
+	g_signal_connect(wv, "notify::title",
+		G_CALLBACK(WebView_notify_title_callback),
+		&signal_notify_title);
 }
 
 WebView::WebView(const Glib::ustring& uri) : WebView{} {
@@ -64,6 +72,10 @@ sigc::connection WebView::connect_load_changed(std::function<void(WebKitLoadEven
 
 sigc::connection WebView::connect_back_forward_list_changed(std::function<void(WebKitBackForwardList *)> handler) {
 	return signal_back_forward_list_changed.connect(handler);
+}
+
+sigc::connection WebView::connect_notify_title(std::function<void()> handler) {
+	return signal_notify_title.connect(handler);
 }
 
 void WebView::on_load_changed(WebKitLoadEvent ev) {
@@ -148,6 +160,7 @@ void Browser::show_webview(WebView& wv) {
 	// These details will be continuously updated with the callbacks set
 	// below until a different webview is shown.
 	update_histnav(wv);
+	update_title(wv);
 
 	page_signals = { {
 		back.signal_clicked().connect([&wv] { wv.go_back(); }),
@@ -160,6 +173,7 @@ void Browser::show_webview(WebView& wv) {
 			}
 			update_histnav(*current_page.webview);
 		}),
+		wv.connect_notify_title([&] { update_title(wv); }),
 	} };
 }
 
@@ -169,9 +183,12 @@ void Browser::update_histnav(WebView& wv) {
 	fwd.set_sensitive(webkit_web_view_can_go_forward(p));
 }
 
-void Browser::switch_page(uint page_num) {
-	std::cout << "switched page: " << page_num << "\n";
+void Browser::update_title(WebView& wv) {
+	auto c_title = webkit_web_view_get_title(wv.gobj());
+	set_title(c_title ? c_title : "volo");
+}
 
+void Browser::switch_page(uint page_num) {
 	// Disconnect previous WebView's signals before showing and connecting
 	// the new WebView.
 	for (auto& sig : page_signals) {

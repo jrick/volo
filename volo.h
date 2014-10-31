@@ -71,6 +71,7 @@ private:
 	// Signals.
 	sigc::signal<void, WebKitLoadEvent> signal_load_changed;
 	sigc::signal<void, WebKitBackForwardList *> signal_back_forward_list_changed;
+	sigc::signal<void> signal_notify_title;
 
 public:
 	// Constructors to allocate and initialize a new WebKitWebView.  The
@@ -92,6 +93,7 @@ public:
 	// Signal connections.
 	sigc::connection connect_load_changed(std::function<void(WebKitLoadEvent)>);
 	sigc::connection connect_back_forward_list_changed(std::function<void(WebKitBackForwardList *)>);
+	sigc::connection connect_notify_title(std::function<void()>);
 
 	// Slot..
 	void on_load_changed(WebKitLoadEvent);
@@ -139,7 +141,7 @@ private:
 	Gtk::Entry nav_entry;
 	Gtk::Notebook nb;
 	// Details about the currently shown page.
-	std::array<sigc::connection, 4> page_signals;
+	std::array<sigc::connection, 5> page_signals;
 	PageContext current_page;
 
 public:
@@ -158,6 +160,7 @@ private:
 	void show_webview(WebView&);
 	void switch_page(uint);
 	void update_histnav(WebView&);
+	void update_title(WebView&);
 };
 
 } // namespace volo
