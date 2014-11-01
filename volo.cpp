@@ -126,6 +126,7 @@ Browser::Browser(const std::vector<Glib::ustring>& uris) {
 	set_title("volo");
 	set_default_size(1024, 768);
 	set_titlebar(navbar);
+	nb.set_scrollable();
 	add(nb);
 
 	webviews.reserve(uris.size());
@@ -186,9 +187,9 @@ int Browser::open_uri(const Glib::ustring& uri) {
 		for (auto i = webviews.begin(); i != webviews.end(); ++i) {
 			// Compare using pointer equality.  We intentionally
 			// captured a reference to the WebView, and not the
-			// unique_ptr<WebView>, so that we could take the
-			// address of the actual WebView object without the
-			// unique_ptr having been zeroed after a move.
+			// vector's unique_ptr<WebView>, so that we could take
+			// the address of the actual WebView object without the
+			// vector's unique_ptr having been zeroed after a move.
 			if (i->get() != &wv) {
 				continue;
 			}
