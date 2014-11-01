@@ -121,30 +121,44 @@ public:
 // tab will open a new one to the blank page.
 class Browser : public Gtk::Window {
 private:
-	struct PageContext {
-		uint tab_index{0};
-		WebView *webview{nullptr};
-		WebKitBackForwardList *bfl{nullptr};
-		PageContext() {}
-		PageContext(uint tab_idx, std::unique_ptr<WebView>& wv) {
-			tab_index = tab_idx;
-			webview = wv.get();
-			bfl = webkit_web_view_get_back_forward_list(wv->gobj());
-		}
+	// Tab represents the widgets added to the Browser's notebook.  It
+	// is the owner of each tab's WebView, and when destructed, the WebView
+	// widget added to the Browser's notebook will begin the destruction of
+	// content added to the notebook tab.  Therefore it does not claim
+	// ownership of these other tab widgets and uses non-owning pointers to
+	// provide the Browser with access to needed tab content (such as adding
+	// the notebook page and continuously updating the tab title with the
+	// page title).
+	struct Tab {
+		WebView wv;
+		Gtk::Label *tab_title;
+		Gtk::Button *tab_close;
+		Gtk::Grid *tab_content;
+		Tab(const Glib::ustring&);
 	};
 
-	// A vector of WebView pointers is used instead of a vector of WebViews
-	// since no move constructor is defined for WebView and gtkmm classes
-	// from which it derives.  This appears to be a limitation with gtkmm.
-	std::vector<std::unique_ptr<WebView>> webviews;
+	// A vector of Tab pointers is used instead of a vector of Tabs since
+	// the Tab structs cannot be moved.  This appears to be a limitation
+	// with gtkmm.
+	std::vector<std::unique_ptr<Tab>> tabs;
 	Gtk::HeaderBar navbar;
 	Gtk::Box histnav;
 	Gtk::Button back, fwd, stop, reload, new_tab;
 	Gtk::Entry nav_entry;
 	Gtk::Notebook nb;
 	// Details about the currently shown page.
-	std::array<sigc::connection, 5> page_signals;
-	PageContext current_page;
+	std::array<sigc::connection, 4> page_signals;
+	struct VisableTab {
+		uint tab_index{0};
+		WebView *webview{nullptr};
+		WebKitBackForwardList *bfl{nullptr};
+		VisableTab() {}
+		VisableTab(uint n, WebView& wv) {
+			tab_index = n;
+			webview = &wv;
+			bfl = webkit_web_view_get_back_forward_list(wv.gobj());
+		}
+	} visable_tab;
 
 public:
 	// Constructors to create the toplevel browser window widget.  Multiple
@@ -155,14 +169,16 @@ public:
 	Browser() : Browser{{"https://duckduckgo.com/lite", "https://github.com"}} {}
 	Browser(const std::vector<Glib::ustring>&);
 
-	// open_uri opens a new tab and begins loading the specified resource.
-	int open_uri(const Glib::ustring&);
+	// open_new_tab creates a new tab, loading the specified resource, and
+	// adds it to the Browser, appending the page to the end of the
+	// notebook.  The notebook index is returned and may be used to switch
+	// view to the newly opened tab.
+	int open_new_tab(const Glib::ustring&);
 
 private:
 	void show_webview(WebView&);
 	void switch_page(uint) noexcept;
 	void update_histnav(WebView&);
-	void update_title(WebView&);
 };
 
 } // namespace volo

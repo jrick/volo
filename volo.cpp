@@ -129,9 +129,9 @@ Browser::Browser(const std::vector<Glib::ustring>& uris) {
 	nb.set_scrollable();
 	add(nb);
 
-	webviews.reserve(uris.size());
+	tabs.reserve(uris.size());
 	for (const auto& uri : uris) {
-		open_uri(uri);
+		open_new_tab(uri);
 	}
 
 	nb.signal_switch_page().connect([this] (auto, guint page_num) {
@@ -144,60 +144,76 @@ Browser::Browser(const std::vector<Glib::ustring>& uris) {
 		nb.set_show_tabs(nb.get_n_pages() > 1);
 	});
 	new_tab.signal_clicked().connect([this] {
-		auto n = open_uri("https://duckduckgo.com/lite");
+		auto n = open_new_tab("https://duckduckgo.com/lite");
 		nb.set_current_page(n);
 	});
 
-	show_webview(*webviews.front());
+	show_webview(tabs.front()->wv);
 
 	show_all_children();
 }
 
-int Browser::open_uri(const Glib::ustring& uri) {
-	auto tab = make_managed<Gtk::Grid>();
-	auto title = make_managed<Gtk::Label>("New tab");
-	auto close = make_managed<Gtk::Button>();
+Browser::Tab::Tab(const Glib::ustring& uri) : wv{uri} {
+	tab_title = make_managed<Gtk::Label>("New tab");
+	tab_close = make_managed<Gtk::Button>();
+	tab_content = make_managed<Gtk::Grid>();
 
-	close->set_image_from_icon_name("window-close");
+	tab_title->set_can_focus(false);
+	tab_title->set_hexpand(true);
+	tab_title->set_ellipsize(Pango::ELLIPSIZE_END);
+	tab_title->set_size_request(150, -1);
 
-	title->set_can_focus(false);
-	title->set_hexpand(true);
-	title->set_ellipsize(Pango::ELLIPSIZE_END);
-	title->set_size_request(150, -1);
-	close->set_can_focus(false);
-	tab->set_can_focus(false);
+	tab_close->set_image_from_icon_name("window-close");
 
-	tab->add(*title);
-	tab->add(*close);
+	tab_content->set_can_focus(false);
+	tab_content->set_can_focus(false);
 
-	webviews.emplace_back(std::make_unique<WebView>(uri));
-	const auto& wv = webviews.back();
-	wv->show_all();
-	tab->show_all();
-	const auto n = nb.append_page(*wv, *tab);
-	nb.set_tab_reorderable(*wv, true);
+	tab_content->add(*tab_title);
+	tab_content->add(*tab_close);
+}
 
-	close->signal_clicked().connect([this, &wv = *wv] {
+int Browser::open_new_tab(const Glib::ustring& uri) {
+	tabs.emplace_back(std::make_unique<Tab>(uri));
+	const auto& tab = tabs.back();
+	auto& wv = tab->wv;
+	auto& tab_content = *tab->tab_content;
+	wv.show_all();
+	tab_content.show_all();
+	const auto n = nb.append_page(wv, tab_content);
+	nb.set_tab_reorderable(wv, true);
+
+	tab->tab_close->signal_clicked().connect([this, &tab = *tab] {
 		// NOTE: This is very fast because it does not need to
-		// dereference every pointer in the webviews vector, but it
-		// relies on the WebView RAII handle never being moved.
-		// Currently this is safe because moving for this type is
-		// disabled (no move constructors or assignment operators
-		// exist).
-		for (auto i = webviews.begin(); i != webviews.end(); ++i) {
+		// dereference every pointer in the tabs vector, but it
+		// relies on the Tab struct never being moved.  Currently
+		// this holds true because moving for this type is disabled
+		// (no move constructors or assignment operators exists).
+		for (auto it = tabs.begin(); it != tabs.end(); ++it) {
 			// Compare using pointer equality.  We intentionally
-			// captured a reference to the WebView, and not the
-			// vector's unique_ptr<WebView>, so that we could take
-			// the address of the actual WebView object without the
+			// captured a reference to the Tab, and not the
+			// vector's unique_ptr<Tab>, so that we could take the
+			// address of the actual WebView object without the
 			// vector's unique_ptr having been zeroed after a move.
-			if (i->get() != &wv) {
+			if (it->get() != &tab) {
 				continue;
 			}
-			webviews.erase(i);
+			tabs.erase(it);
 			break;
 		}
-		if (webviews.size() == 0) {
- 			switch_page(open_uri("https://duckduckgo.com/lite"));
+		if (tabs.size() == 0) {
+			auto n = open_new_tab("https://duckduckgo.com/lite");
+ 			switch_page(n);
+		}
+	});
+	wv.connect_notify_title([this, &tab = *tab] {
+		// Update tab title and the window title (if this tab is
+		// currently visable) with the new page title.
+		auto& wv = tab.wv;
+		auto c_title = webkit_web_view_get_title(wv.gobj());
+		Glib::ustring title{c_title ? c_title : "(Untitled)"};
+		tab.tab_title->set_text(title);
+		if (visable_tab.webview == &wv) {
+			set_title(title);
 		}
 	});
 
@@ -209,18 +225,16 @@ void Browser::show_webview(WebView& wv) {
 	// These details will be continuously updated with the callbacks set
 	// below until a different webview is shown.
 	update_histnav(wv);
-	update_title(wv);
 
 	page_signals = { {
 		back.signal_clicked().connect([&wv] { wv.go_back(); }),
 		fwd.signal_clicked().connect([&wv] { wv.go_forward(); }),
 		wv.connect_load_changed(sigc::mem_fun(wv, &WebView::on_load_changed)),
 		wv.connect_back_forward_list_changed([this](WebKitBackForwardList *bfl) {
-			if (current_page.bfl == bfl) {
-				update_histnav(*current_page.webview);
+			if (visable_tab.bfl == bfl) {
+				update_histnav(*visable_tab.webview);
 			}
 		}),
-		wv.connect_notify_title([this, &wv] { update_title(wv); }),
 	} };
 }
 
@@ -230,11 +244,6 @@ void Browser::update_histnav(WebView& wv) {
 	fwd.set_sensitive(webkit_web_view_can_go_forward(p));
 }
 
-void Browser::update_title(WebView& wv) {
-	auto c_title = webkit_web_view_get_title(wv.gobj());
-	set_title(c_title ? c_title : "volo");
-}
-
 void Browser::switch_page(uint page_num) noexcept {
 	// Disconnect previous WebView's signals before showing and connecting
 	// the new WebView.
@@ -242,9 +251,9 @@ void Browser::switch_page(uint page_num) noexcept {
 		sig.disconnect();
 	}
 
-	auto& wv = webviews.at(page_num);
-	current_page = PageContext{page_num, wv};
-	show_webview(*wv);
+	auto& wv = tabs.at(page_num)->wv;
+	visable_tab = VisableTab{page_num, wv};
+	show_webview(wv);
 }
 
 
