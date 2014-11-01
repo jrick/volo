@@ -176,7 +176,7 @@ public:
 	int open_new_tab(const Glib::ustring&);
 
 private:
-	void show_webview(WebView&);
+	void show_webview(uint, WebView&);
 	void switch_page(uint) noexcept;
 	void update_histnav(WebView&);
 };

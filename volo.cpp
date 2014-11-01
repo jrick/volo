@@ -148,7 +148,7 @@ Browser::Browser(const std::vector<Glib::ustring>& uris) {
 		nb.set_current_page(n);
 	});
 
-	show_webview(tabs.front()->wv);
+	show_webview(0, tabs.front()->wv);
 
 	show_all_children();
 }
@@ -220,10 +220,13 @@ int Browser::open_new_tab(const Glib::ustring& uri) {
 	return n;
 }
 
-void Browser::show_webview(WebView& wv) {
-	// Update navbar with the current state of the webview being shown.
-	// These details will be continuously updated with the callbacks set
-	// below until a different webview is shown.
+void Browser::show_webview(uint page_num, WebView& wv) {
+	visable_tab = VisableTab{page_num, wv};
+
+	// Update navbar/titlebar with the current state of the webview being
+	// shown.
+	auto c_title = webkit_web_view_get_title(wv.gobj());
+	set_title(c_title ? c_title : "volo");
 	update_histnav(wv);
 
 	page_signals = { {
@@ -251,9 +254,7 @@ void Browser::switch_page(uint page_num) noexcept {
 		sig.disconnect();
 	}
 
-	auto& wv = tabs.at(page_num)->wv;
-	visable_tab = VisableTab{page_num, wv};
-	show_webview(wv);
+	show_webview(page_num, tabs.at(page_num)->wv);
 }
 
 
