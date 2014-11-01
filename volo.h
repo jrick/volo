@@ -91,6 +91,9 @@ public:
 	// get_uri returns the URI of the WebView.
 	Glib::ustring get_uri();
 
+	// reload reloads the current WebView's URI.
+	void reload();
+
 	// go_back loads the previous history item.
 	void go_back();
 
@@ -123,6 +126,10 @@ class URIEntry : public Gtk::Box {
 private:
 	Gtk::Entry entry;
 	bool editing{false};
+	bool refresh_pressed{false};
+
+	// Signals
+	sigc::signal<void> signal_refresh;
 
 public:
 	URIEntry();
@@ -131,8 +138,11 @@ public:
 	Glib::ustring get_uri() { return entry.get_text(); }
 	void set_uri(const Glib::ustring& uri) { entry.set_text(uri); }
 
+	// Signal connections.
+	sigc::connection connect_refresh(std::function<void()>);
+
 private:
-	virtual bool on_button_release_event(GdkEventButton *);
+	bool on_button_release_event(GdkEventButton *);
 };
 
 
@@ -172,7 +182,7 @@ private:
 	URIEntry nav_entry;
 	Gtk::Notebook nb;
 	// Details about the currently shown page.
-	std::array<sigc::connection, 5> page_signals;
+	std::array<sigc::connection, 6> page_signals;
 	struct VisableTab {
 		unsigned int tab_index{0};
 		WebView *webview{nullptr};

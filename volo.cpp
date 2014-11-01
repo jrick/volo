@@ -70,13 +70,17 @@ Glib::ustring WebView::get_uri() {
 	return uri ? uri : "";
 }
 
+void WebView::reload() {
+	webkit_web_view_reload(gobj());
+}
+
 void WebView::go_back() {
 	webkit_web_view_go_back(gobj());
-};
+}
 
 void WebView::go_forward() {
 	webkit_web_view_go_forward(gobj());
-};
+}
 
 sigc::connection WebView::connect_load_changed(
 	std::function<void(WebKitLoadEvent)> handler) {
@@ -102,17 +106,6 @@ void WebView::on_load_changed(WebKitLoadEvent ev) {
 	std::cout << ev << '\n';
 }
 
-// This can't be a lambda since we can't create sigc::slots from lambdas
-// with return values.
-bool URIEntry::on_button_release_event(GdkEventButton *) {
-	int start, end;
-	auto has_selection = entry.get_selection_bounds(start, end);
-	if (!editing && !has_selection) {
-		entry.grab_focus();
-	}
-	editing = true;
-	return false;
-}
 
 URIEntry::URIEntry() {
 	set_size_request(600, -1); // TODO: make this dynamic with the window size
@@ -131,10 +124,36 @@ URIEntry::URIEntry() {
 			editing = false;
 		}
 	});
+	entry.signal_icon_press().connect([this](Gtk::EntryIconPosition pos, ...) {
+		refresh_pressed = true;
+	});
+	entry.signal_icon_release().connect([this](Gtk::EntryIconPosition pos, ...) {
+		if (refresh_pressed) {
+			signal_refresh.emit();
+		}
+		refresh_pressed = false;
+	});
 
 	add(entry);
 
 	show_all_children();
+}
+
+// This can't be a lambda since we can't create sigc::slots from lambdas
+// with return values.
+bool URIEntry::on_button_release_event(GdkEventButton *) {
+	if (!editing && !refresh_pressed) {
+		int start, end;
+		if (!entry.get_selection_bounds(start, end)) {
+			entry.grab_focus();
+		}
+	}
+	editing = true;
+	return false;
+}
+
+sigc::connection URIEntry::connect_refresh(std::function<void()> handler) {
+	return signal_refresh.connect(handler);
 }
 
 
@@ -293,6 +312,7 @@ void Browser::show_webview(unsigned int page_num, WebView& wv) {
 			}
 		}),
 		wv.connect_notify_uri([this, &wv] { nav_entry.set_uri(wv.get_uri()); }),
+		nav_entry.connect_refresh([&wv] { wv.reload(); }),
 	} };
 }
 
