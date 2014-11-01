@@ -139,7 +139,7 @@ private:
 	std::vector<std::unique_ptr<WebView>> webviews;
 	Gtk::HeaderBar navbar;
 	Gtk::Box histnav;
-	Gtk::Button back, fwd, stop, reload;
+	Gtk::Button back, fwd, stop, reload, new_tab;
 	Gtk::Entry nav_entry;
 	Gtk::Notebook nb;
 	// Details about the currently shown page.
@@ -160,7 +160,7 @@ public:
 
 private:
 	void show_webview(WebView&);
-	void switch_page(uint);
+	void switch_page(uint) noexcept;
 	void update_histnav(WebView&);
 	void update_title(WebView&);
 };

@@ -103,17 +103,23 @@ Browser::Browser(const std::vector<Glib::ustring>& uris) {
 	fwd.set_image_from_icon_name("go-next");
 	//stop.set_image_from_icon_name("process-stop");
 	//reload.set_image_from_icon_name("view-refresh");
+	new_tab.set_image_from_icon_name("add");
 
 	auto histnav_style = histnav.get_style_context();
 	histnav_style->add_class("raised");
 	histnav_style->add_class("linked");
 	histnav.add(back);
 	histnav.add(fwd);
-	navbar.add(histnav);
+	navbar.pack_start(histnav);
 
 	nav_entry.set_input_purpose(Gtk::INPUT_PURPOSE_URL);
 	nav_entry.set_hexpand(true);
 	navbar.set_custom_title(nav_entry);
+
+	new_tab.set_can_focus(false);
+	new_tab.set_relief(Gtk::RELIEF_NONE);
+	new_tab.show();
+	navbar.pack_end(new_tab);
 
 	navbar.set_show_close_button(true);
 
@@ -130,6 +136,16 @@ Browser::Browser(const std::vector<Glib::ustring>& uris) {
 	nb.signal_switch_page().connect([this] (auto, guint page_num) {
 		switch_page(page_num);
 	});
+	nb.signal_page_added().connect([this] (...) {
+		nb.set_show_tabs(true);
+	});
+	nb.signal_page_removed().connect([this] (...) {
+		nb.set_show_tabs(nb.get_n_pages() > 1);
+	});
+	new_tab.signal_clicked().connect([this] {
+		auto n = open_uri("https://duckduckgo.com/lite");
+		nb.set_current_page(n);
+	});
 
 	show_webview(*webviews.front());
 
@@ -137,13 +153,16 @@ Browser::Browser(const std::vector<Glib::ustring>& uris) {
 }
 
 int Browser::open_uri(const Glib::ustring& uri) {
-	auto tab  = make_managed<Gtk::Grid>();
+	auto tab = make_managed<Gtk::Grid>();
 	auto title = make_managed<Gtk::Label>("New tab");
 	auto close = make_managed<Gtk::Button>();
 
 	close->set_image_from_icon_name("window-close");
 
 	title->set_can_focus(false);
+	title->set_hexpand(true);
+	title->set_ellipsize(Pango::ELLIPSIZE_END);
+	title->set_size_request(150, -1);
 	close->set_can_focus(false);
 	tab->set_can_focus(false);
 
@@ -215,7 +234,7 @@ void Browser::update_title(WebView& wv) {
 	set_title(c_title ? c_title : "volo");
 }
 
-void Browser::switch_page(uint page_num) {
+void Browser::switch_page(uint page_num) noexcept {
 	// Disconnect previous WebView's signals before showing and connecting
 	// the new WebView.
 	for (auto& sig : page_signals) {
