@@ -161,7 +161,7 @@ Browser::Tab::Tab(const Glib::ustring& uri) : wv{uri} {
 	tab_title->set_can_focus(false);
 	tab_title->set_hexpand(true);
 	tab_title->set_ellipsize(Pango::ELLIPSIZE_END);
-	tab_title->set_size_request(150, -1);
+	tab_title->set_size_request(50, -1);
 
 	tab_close->set_image_from_icon_name("window-close");
 
