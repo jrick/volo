@@ -34,6 +34,10 @@ static void WebView_notify_title_callback(GObject *, GParamSpec *, gpointer sign
 	static_cast<sigc::signal<void> *>(signal)->emit();
 }
 
+static void WebView_notify_uri_callback(GObject *, GParamSpec *, gpointer signal) {
+	static_cast<sigc::signal<void> *>(signal)->emit();
+}
+
 WebView::WebView(WebKitWebView *wv) : Gtk::Widget{GTK_WIDGET(wv)} {
 	g_signal_connect(wv, "load-changed",
 		G_CALLBACK(WebView_load_changed_callback),
@@ -47,6 +51,10 @@ WebView::WebView(WebKitWebView *wv) : Gtk::Widget{GTK_WIDGET(wv)} {
 	g_signal_connect(wv, "notify::title",
 		G_CALLBACK(WebView_notify_title_callback),
 		&signal_notify_title);
+
+	g_signal_connect(wv, "notify::uri",
+		G_CALLBACK(WebView_notify_uri_callback),
+		&signal_notify_uri);
 }
 
 WebView::WebView(const Glib::ustring& uri) : WebView{} {
@@ -55,6 +63,11 @@ WebView::WebView(const Glib::ustring& uri) : WebView{} {
 
 void WebView::load_uri(const Glib::ustring& uri) {
 	webkit_web_view_load_uri(gobj(), uri.c_str());
+}
+
+Glib::ustring WebView::get_uri() {
+	auto uri = webkit_web_view_get_uri(gobj());
+	return uri ? uri : "";
 }
 
 void WebView::go_back() {
@@ -81,8 +94,47 @@ sigc::connection WebView::connect_notify_title(std::function<void()> handler) {
 	return signal_notify_title.connect(handler);
 }
 
+sigc::connection WebView::connect_notify_uri(std::function<void()> handler) {
+	return signal_notify_uri.connect(handler);
+}
+
 void WebView::on_load_changed(WebKitLoadEvent ev) {
 	std::cout << ev << '\n';
+}
+
+// This can't be a lambda since we can't create sigc::slots from lambdas
+// with return values.
+bool URIEntry::on_button_release_event(GdkEventButton *) {
+	int start, end;
+	auto has_selection = entry.get_selection_bounds(start, end);
+	if (!editing && !has_selection) {
+		entry.grab_focus();
+	}
+	editing = true;
+	return false;
+}
+
+URIEntry::URIEntry() {
+	set_size_request(600, -1); // TODO: make this dynamic with the window size
+	set_margin_left(6);
+	set_margin_right(6);
+	entry.set_hexpand(true);
+
+	entry.set_input_purpose(Gtk::INPUT_PURPOSE_URL);
+	entry.set_icon_from_icon_name("view-refresh", Gtk::ENTRY_ICON_SECONDARY);
+
+	entry.signal_button_release_event().connect(sigc::mem_fun(*this,
+		&URIEntry::on_button_release_event), false);
+	entry.property_is_focus().signal_changed().connect([this](...) {
+		if (!entry.is_focus()) {
+			entry.select_region(0, 0);
+			editing = false;
+		}
+	});
+
+	add(entry);
+
+	show_all_children();
 }
 
 
@@ -101,8 +153,6 @@ Browser::Browser(const std::vector<Glib::ustring>& uris) {
 	// constructor.
 	back.set_image_from_icon_name("go-previous");
 	fwd.set_image_from_icon_name("go-next");
-	//stop.set_image_from_icon_name("process-stop");
-	//reload.set_image_from_icon_name("view-refresh");
 	new_tab.set_image_from_icon_name("add");
 
 	auto histnav_style = histnav.get_style_context();
@@ -112,8 +162,6 @@ Browser::Browser(const std::vector<Glib::ustring>& uris) {
 	histnav.add(fwd);
 	navbar.pack_start(histnav);
 
-	nav_entry.set_input_purpose(Gtk::INPUT_PURPOSE_URL);
-	nav_entry.set_hexpand(true);
 	navbar.set_custom_title(nav_entry);
 
 	new_tab.set_can_focus(false);
@@ -134,6 +182,11 @@ Browser::Browser(const std::vector<Glib::ustring>& uris) {
 		open_new_tab(uri);
 	}
 
+	nav_entry.signal_uri_entered().connect([this] {
+		auto text = nav_entry.get_uri();
+		// TODO: this could not be a valid uri.
+		visable_tab.webview->load_uri(text);
+	});
 	nb.signal_switch_page().connect([this] (auto, guint page_num) {
 		switch_page(page_num);
 	});
@@ -153,10 +206,10 @@ Browser::Browser(const std::vector<Glib::ustring>& uris) {
 	show_all_children();
 }
 
-Browser::Tab::Tab(const Glib::ustring& uri) : wv{uri} {
-	tab_title = make_managed<Gtk::Label>("New tab");
-	tab_close = make_managed<Gtk::Button>();
-	tab_content = make_managed<Gtk::Grid>();
+Browser::Tab::Tab(const Glib::ustring& uri) : wv{uri}, 
+	tab_title{make_managed<Gtk::Label>("New tab")},
+	tab_close{make_managed<Gtk::Button>()},
+	tab_content{make_managed<Gtk::Grid>()} {
 
 	tab_title->set_can_focus(false);
 	tab_title->set_hexpand(true);
@@ -220,7 +273,7 @@ int Browser::open_new_tab(const Glib::ustring& uri) {
 	return n;
 }
 
-void Browser::show_webview(uint page_num, WebView& wv) {
+void Browser::show_webview(unsigned int page_num, WebView& wv) {
 	visable_tab = VisableTab{page_num, wv};
 
 	// Update navbar/titlebar with the current state of the webview being
@@ -228,6 +281,7 @@ void Browser::show_webview(uint page_num, WebView& wv) {
 	auto c_title = webkit_web_view_get_title(wv.gobj());
 	set_title(c_title ? c_title : "volo");
 	update_histnav(wv);
+	nav_entry.set_uri(wv.get_uri());
 
 	page_signals = { {
 		back.signal_clicked().connect([&wv] { wv.go_back(); }),
@@ -238,6 +292,7 @@ void Browser::show_webview(uint page_num, WebView& wv) {
 				update_histnav(*visable_tab.webview);
 			}
 		}),
+		wv.connect_notify_uri([this, &wv] { nav_entry.set_uri(wv.get_uri()); }),
 	} };
 }
 
@@ -247,7 +302,7 @@ void Browser::update_histnav(WebView& wv) {
 	fwd.set_sensitive(webkit_web_view_can_go_forward(p));
 }
 
-void Browser::switch_page(uint page_num) noexcept {
+void Browser::switch_page(unsigned int page_num) noexcept {
 	// Disconnect previous WebView's signals before showing and connecting
 	// the new WebView.
 	for (auto& sig : page_signals) {

@@ -11,6 +11,7 @@
 #include <gtkmm.h>
 #include <webkit2/webkit2.h>
 
+
 namespace volo {
 
 // make_managed creates a dynamically allocated gtkmm widget whose
@@ -72,6 +73,7 @@ private:
 	sigc::signal<void, WebKitLoadEvent> signal_load_changed;
 	sigc::signal<void, WebKitBackForwardList *> signal_back_forward_list_changed;
 	sigc::signal<void> signal_notify_title;
+	sigc::signal<void> signal_notify_uri;
 
 public:
 	// Constructors to allocate and initialize a new WebKitWebView.  The
@@ -86,6 +88,9 @@ public:
 	// load_uri begins the loading the URI described by uri in the WebView.
 	void load_uri(const Glib::ustring&);
 
+	// get_uri returns the URI of the WebView.
+	Glib::ustring get_uri();
+
 	// go_back loads the previous history item.
 	void go_back();
 
@@ -96,6 +101,7 @@ public:
 	sigc::connection connect_load_changed(std::function<void(WebKitLoadEvent)>);
 	sigc::connection connect_back_forward_list_changed(std::function<void(WebKitBackForwardList *)>);
 	sigc::connection connect_notify_title(std::function<void()>);
+	sigc::connection connect_notify_uri(std::function<void()>);
 
 	// Slot..
 	void on_load_changed(WebKitLoadEvent);
@@ -108,6 +114,25 @@ public:
 	// Accessor methods for the underlying GObject.
 	WebKitWebView * gobj() { return reinterpret_cast<WebKitWebView *>(gobject_); }
 	const WebKitWebView * gobj() const { return reinterpret_cast<WebKitWebView *>(gobject_); }
+};
+
+
+// URIEntry represents the URI entry box that is used as the Browser
+// window's custom title.
+class URIEntry : public Gtk::Box {
+private:
+	Gtk::Entry entry;
+	bool editing{false};
+
+public:
+	URIEntry();
+
+	auto signal_uri_entered() { return entry.signal_activate(); }
+	Glib::ustring get_uri() { return entry.get_text(); }
+	void set_uri(const Glib::ustring& uri) { entry.set_text(uri); }
+
+private:
+	virtual bool on_button_release_event(GdkEventButton *);
 };
 
 
@@ -131,9 +156,9 @@ private:
 	// page title).
 	struct Tab {
 		WebView wv;
-		Gtk::Label *tab_title;
-		Gtk::Button *tab_close;
-		Gtk::Grid *tab_content;
+		Gtk::Label * const tab_title;
+		Gtk::Button * const tab_close;
+		Gtk::Grid * const tab_content;
 		Tab(const Glib::ustring&);
 	};
 
@@ -143,21 +168,18 @@ private:
 	std::vector<std::unique_ptr<Tab>> tabs;
 	Gtk::HeaderBar navbar;
 	Gtk::Box histnav;
-	Gtk::Button back, fwd, stop, reload, new_tab;
-	Gtk::Entry nav_entry;
+	Gtk::Button back, fwd, new_tab;
+	URIEntry nav_entry;
 	Gtk::Notebook nb;
 	// Details about the currently shown page.
-	std::array<sigc::connection, 4> page_signals;
+	std::array<sigc::connection, 5> page_signals;
 	struct VisableTab {
-		uint tab_index{0};
+		unsigned int tab_index{0};
 		WebView *webview{nullptr};
 		WebKitBackForwardList *bfl{nullptr};
 		VisableTab() {}
-		VisableTab(uint n, WebView& wv) {
-			tab_index = n;
-			webview = &wv;
-			bfl = webkit_web_view_get_back_forward_list(wv.gobj());
-		}
+		VisableTab(unsigned int n, WebView& wv) : tab_index{n}, webview{&wv},
+			bfl{webkit_web_view_get_back_forward_list(wv.gobj())} {}
 	} visable_tab;
 
 public:
@@ -176,8 +198,8 @@ public:
 	int open_new_tab(const Glib::ustring&);
 
 private:
-	void show_webview(uint, WebView&);
-	void switch_page(uint) noexcept;
+	void show_webview(unsigned int, WebView&);
+	void switch_page(unsigned int) noexcept;
 	void update_histnav(WebView&);
 };
 
