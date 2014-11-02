@@ -83,8 +83,6 @@ public:
 	WebView() : WebView{reinterpret_cast<WebKitWebView *>(webkit_web_view_new())} {}
 	WebView(const Glib::ustring&);
 
-	// TODO(jrick): destructor?
-
 	// load_uri begins the loading the URI described by uri in the WebView.
 	void load_uri(const Glib::ustring&);
 
@@ -105,9 +103,6 @@ public:
 	sigc::connection connect_back_forward_list_changed(std::function<void(WebKitBackForwardList *)>);
 	sigc::connection connect_notify_title(std::function<void()>);
 	sigc::connection connect_notify_uri(std::function<void()>);
-
-	// Slot..
-	void on_load_changed(WebKitLoadEvent);
 
 protected:
 	// Constructor to create a WebView from a C pointer.
@@ -132,11 +127,16 @@ private:
 	sigc::signal<void> signal_refresh;
 
 public:
+	// Default constructor.  No surprises here.
 	URIEntry();
 
-	auto signal_uri_entered() { return entry.signal_activate(); }
-	Glib::ustring get_uri() { return entry.get_text(); }
-	void set_uri(const Glib::ustring& uri) { entry.set_text(uri); }
+	// Getters and setters for the text in the URI entry.
+	Glib::ustring get_uri();
+	void set_uri(const Glib::ustring& uri);
+
+	// signal_uri_entered returns a connectable signal which fires
+	// whenever the URI is entered by the user using the entry.
+	Glib::SignalProxy0<void> signal_uri_entered();
 
 	// Signal connections.
 	sigc::connection connect_refresh(std::function<void()>);
@@ -182,7 +182,7 @@ private:
 	URIEntry nav_entry;
 	Gtk::Notebook nb;
 	// Details about the currently shown page.
-	std::array<sigc::connection, 6> page_signals;
+	std::array<sigc::connection, 5> page_signals;
 	struct VisableTab {
 		unsigned int tab_index{0};
 		WebView *webview{nullptr};
@@ -196,9 +196,7 @@ public:
 	// Constructors to create the toplevel browser window widget.  Multiple
 	// URIs (a "session") to open may be specified, while the default
 	// constructor will open a single tab to a single blank page.
-	//
-	// TODO(jrick): actually use about:blank
-	Browser() : Browser{{"https://duckduckgo.com/lite", "https://github.com"}} {}
+	Browser() : Browser{{""}} {}
 	Browser(const std::vector<Glib::ustring>&);
 
 	// open_new_tab creates a new tab, loading the specified resource, and

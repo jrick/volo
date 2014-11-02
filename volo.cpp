@@ -7,8 +7,6 @@
 
 using namespace volo;
 
-const Glib::ustring blank_page = "about:blank";
-
 WebContext WebContext::get_default() {
 	return WebContext{};
 }
@@ -102,10 +100,6 @@ sigc::connection WebView::connect_notify_uri(std::function<void()> handler) {
 	return signal_notify_uri.connect(handler);
 }
 
-void WebView::on_load_changed(WebKitLoadEvent ev) {
-	std::cout << ev << '\n';
-}
-
 
 URIEntry::URIEntry() {
 	set_size_request(600, -1); // TODO: make this dynamic with the window size
@@ -139,6 +133,18 @@ URIEntry::URIEntry() {
 	show_all_children();
 }
 
+Glib::SignalProxy0<void> URIEntry::signal_uri_entered() {
+	return entry.signal_activate();
+}
+
+Glib::ustring URIEntry::get_uri() {
+	return entry.get_text();
+}
+
+void URIEntry::set_uri(const Glib::ustring& uri) {
+	entry.set_text(uri);
+}
+
 // This can't be a lambda since we can't create sigc::slots from lambdas
 // with return values.
 bool URIEntry::on_button_release_event(GdkEventButton *) {
@@ -156,11 +162,6 @@ sigc::connection URIEntry::connect_refresh(std::function<void()> handler) {
 	return signal_refresh.connect(handler);
 }
 
-
-const std::initializer_list<Glib::ustring> default_session = {
-	"https://duckduckgo.com/lite",
-	"https://github.com",
-};
 
 Browser::Browser(const std::vector<Glib::ustring>& uris) {
 	auto wc = WebContext::get_default();
@@ -190,13 +191,16 @@ Browser::Browser(const std::vector<Glib::ustring>& uris) {
 
 	navbar.set_show_close_button(true);
 
+	auto num_uris = uris.size();
+	nb.set_show_tabs(num_uris > 1);
+
 	set_title("volo");
 	set_default_size(1024, 768);
 	set_titlebar(navbar);
 	nb.set_scrollable();
 	add(nb);
 
-	tabs.reserve(uris.size());
+	tabs.reserve(num_uris);
 	for (const auto& uri : uris) {
 		open_new_tab(uri);
 	}
@@ -205,6 +209,7 @@ Browser::Browser(const std::vector<Glib::ustring>& uris) {
 		auto text = nav_entry.get_uri();
 		// TODO: this could not be a valid uri.
 		visable_tab.webview->load_uri(text);
+		visable_tab.webview->grab_focus();
 	});
 	nb.signal_switch_page().connect([this] (auto, guint page_num) {
 		switch_page(page_num);
@@ -216,7 +221,7 @@ Browser::Browser(const std::vector<Glib::ustring>& uris) {
 		nb.set_show_tabs(nb.get_n_pages() > 1);
 	});
 	new_tab.signal_clicked().connect([this] {
-		auto n = open_new_tab("https://duckduckgo.com/lite");
+		auto n = open_new_tab("");
 		nb.set_current_page(n);
 	});
 
@@ -273,8 +278,7 @@ int Browser::open_new_tab(const Glib::ustring& uri) {
 			break;
 		}
 		if (tabs.size() == 0) {
-			auto n = open_new_tab("https://duckduckgo.com/lite");
- 			switch_page(n);
+			close();
 		}
 	});
 	wv.connect_notify_title([this, &tab = *tab] {
@@ -305,7 +309,6 @@ void Browser::show_webview(unsigned int page_num, WebView& wv) {
 	page_signals = { {
 		back.signal_clicked().connect([&wv] { wv.go_back(); }),
 		fwd.signal_clicked().connect([&wv] { wv.go_forward(); }),
-		wv.connect_load_changed(sigc::mem_fun(wv, &WebView::on_load_changed)),
 		wv.connect_back_forward_list_changed([this](WebKitBackForwardList *bfl) {
 			if (visable_tab.bfl == bfl) {
 				update_histnav(*visable_tab.webview);
