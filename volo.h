@@ -134,6 +134,9 @@ public:
 	Glib::ustring get_uri();
 	void set_uri(const Glib::ustring& uri);
 
+	// grab_focus focuses the URI entry widget.
+	void grab_focus();
+
 	// signal_uri_entered returns a connectable signal which fires
 	// whenever the URI is entered by the user using the entry.
 	Glib::SignalProxy0<void> signal_uri_entered();

@@ -144,6 +144,10 @@ void URIEntry::set_uri(const Glib::ustring& uri) {
 	entry.set_text(uri);
 }
 
+void URIEntry::grab_focus() {
+	entry.grab_focus();
+}
+
 // This can't be a lambda since we can't create sigc::slots from lambdas
 // with return values.
 bool URIEntry::on_button_release_event(GdkEventButton *) {
@@ -222,6 +226,7 @@ Browser::Browser(const std::vector<Glib::ustring>& uris) {
 	});
 
 	show_webview(0, tabs.front()->wv);
+	nav_entry.grab_focus();
 
 	show_all_children();
 }
@@ -283,6 +288,8 @@ int Browser::open_new_tab(const Glib::ustring& uri) {
 			set_title(title);
 		}
 	});
+
+	nav_entry.grab_focus();
 
 	return n;
 }
