@@ -6,6 +6,20 @@
 
 using namespace volo;
 
+const std::array<Glib::ustring, 2> recognized_uri_schemes = { {
+	"http://",
+	"https://",
+} };
+
+void guess_uri(Glib::ustring& uri) {
+	for (auto& scheme : recognized_uri_schemes) {
+		if (uri.compare(scheme) == 0) {
+			return;
+		}
+	}
+	uri = "http://" + uri;
+}
+
 WebContext WebContext::get_default() {
 	return WebContext{webkit_web_context_get_default()};
 }
@@ -206,9 +220,9 @@ Browser::Browser(const std::vector<Glib::ustring>& uris) {
 	}
 
 	nav_entry.signal_uri_entered().connect([this] {
-		auto text = nav_entry.get_uri();
-		// TODO: this could not be a valid uri.
-		visable_tab.webview->load_uri(text);
+		auto uri = nav_entry.get_uri();
+		guess_uri(uri);
+		visable_tab.webview->load_uri(uri);
 		visable_tab.webview->grab_focus();
 	});
 	nb.signal_switch_page().connect([this] (auto, guint page_num) {
