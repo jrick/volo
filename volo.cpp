@@ -163,9 +163,6 @@ sigc::connection URIEntry::connect_refresh(std::function<void()> handler) {
 
 
 Browser::Browser(const std::vector<Glib::ustring>& uris) {
-	auto wc = WebContext::get_default();
-	wc.set_process_model(WEBKIT_PROCESS_MODEL_MULTIPLE_SECONDARY_PROCESSES);
-
 	// Set navigation button images.  No gtkmm constructor wraps
 	// gtk_button_new_from_icon_name (due to a conflict with
 	// gtk_button_new_with_label) so this must be done in the Browser
@@ -332,6 +329,9 @@ void Browser::switch_page(unsigned int page_num) noexcept {
 
 int main(int argc, char **argv) {
 	const auto app = Gtk::Application::create(argc, argv, "org.jrick.volo");
+
+	auto wc = WebContext::get_default();
+	wc.set_process_model(WEBKIT_PROCESS_MODEL_MULTIPLE_SECONDARY_PROCESSES);
 
 	Browser b;
 	return app->run(b);
