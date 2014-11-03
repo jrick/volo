@@ -3,6 +3,7 @@
 // license that can be found in the LICENSE file.
 
 #include <volo.h>
+#include <iostream>
 
 using namespace volo;
 
@@ -226,7 +227,6 @@ Browser::Browser(const std::vector<Glib::ustring>& uris) {
 	});
 
 	show_webview(0, tabs.front()->wv);
-	nav_entry.grab_focus();
 
 	show_all_children();
 }
@@ -289,8 +289,6 @@ int Browser::open_new_tab(const Glib::ustring& uri) {
 		}
 	});
 
-	nav_entry.grab_focus();
-
 	return n;
 }
 
@@ -302,7 +300,8 @@ void Browser::show_webview(unsigned int page_num, WebView& wv) {
 	auto c_title = webkit_web_view_get_title(wv.gobj());
 	set_title(c_title ? c_title : "volo");
 	update_histnav(wv);
-	nav_entry.set_uri(wv.get_uri());
+	auto uri = wv.get_uri();
+	nav_entry.set_uri(uri);
 
 	page_signals = { {
 		back.signal_clicked().connect([&wv] { wv.go_back(); }),
@@ -315,6 +314,14 @@ void Browser::show_webview(unsigned int page_num, WebView& wv) {
 		wv.connect_notify_uri([this, &wv] { nav_entry.set_uri(wv.get_uri()); }),
 		nav_entry.connect_refresh([&wv] { wv.reload(); }),
 	} };
+
+	// Grab URI entry focus if the shown tab is blank.
+	//
+	// TODO: If this webview is being shown by switching notebook tabs,
+	// grabbing the entry focus has no effect.
+	if (uri == "") {
+		nav_entry.grab_focus();
+	}
 }
 
 void Browser::update_histnav(WebView& wv) {
