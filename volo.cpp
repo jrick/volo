@@ -13,7 +13,7 @@ const std::array<Glib::ustring, 2> recognized_uri_schemes = { {
 
 void guess_uri(Glib::ustring& uri) {
 	for (auto& scheme : recognized_uri_schemes) {
-		if (uri.compare(scheme) == 0) {
+		if (uri.compare(0, scheme.size(), scheme) == 0) {
 			return;
 		}
 	}
