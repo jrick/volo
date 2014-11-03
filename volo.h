@@ -156,19 +156,13 @@ private:
 // tab will open a new one to the blank page.
 class Browser : public Gtk::Window {
 private:
-	// Tab represents the widgets added to the Browser's notebook.  It
-	// is the owner of each tab's WebView, and when destructed, the WebView
-	// widget added to the Browser's notebook will begin the destruction of
-	// content added to the notebook tab.  Therefore it does not claim
-	// ownership of these other tab widgets and uses non-owning pointers to
-	// provide the Browser with access to needed tab content (such as adding
-	// the notebook page and continuously updating the tab title with the
-	// page title).
+	// Tab represents the widgets added to the Browser's notebook.  Note
+	// that there is an additional box which holds the tab's title and
+	// close button that is not owned by this struct.
 	struct Tab {
 		WebView wv;
-		Gtk::Label * const tab_title;
-		Gtk::Button * const tab_close;
-		Gtk::Grid * const tab_content;
+		Gtk::Label tab_title;
+		Gtk::Button tab_close;
 		Tab(const Glib::ustring&);
 	};
 

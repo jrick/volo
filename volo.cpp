@@ -229,36 +229,31 @@ Browser::Browser(const std::vector<Glib::ustring>& uris) {
 	show_all_children();
 }
 
-Browser::Tab::Tab(const Glib::ustring& uri) : wv{uri}, 
-	tab_title{make_managed<Gtk::Label>("New tab")},
-	tab_close{make_managed<Gtk::Button>()},
-	tab_content{make_managed<Gtk::Grid>()} {
+Browser::Tab::Tab(const Glib::ustring& uri) : wv{uri}, tab_title{"New tab"} {
+	tab_title.set_can_focus(false);
+	tab_title.set_hexpand(true);
+	tab_title.set_ellipsize(Pango::ELLIPSIZE_END);
+	tab_title.set_size_request(50, -1);
 
-	tab_title->set_can_focus(false);
-	tab_title->set_hexpand(true);
-	tab_title->set_ellipsize(Pango::ELLIPSIZE_END);
-	tab_title->set_size_request(50, -1);
-
-	tab_close->set_image_from_icon_name("window-close");
-
-	tab_content->set_can_focus(false);
-	tab_content->set_can_focus(false);
-
-	tab_content->add(*tab_title);
-	tab_content->add(*tab_close);
+	tab_close.set_image_from_icon_name("window-close");
 }
 
 int Browser::open_new_tab(const Glib::ustring& uri) {
 	tabs.emplace_back(std::make_unique<Tab>(uri));
 	const auto& tab = tabs.back();
 	auto& wv = tab->wv;
-	auto& tab_content = *tab->tab_content;
+
+	auto tab_content = make_managed<Gtk::Box>();
+	tab_content->set_can_focus(false);
+	tab_content->add(tab->tab_title);
+	tab_content->add(tab->tab_close);
+
 	wv.show_all();
-	tab_content.show_all();
-	const auto n = nb.append_page(wv, tab_content);
+	tab_content->show_all();
+	const auto n = nb.append_page(wv, *tab_content);
 	nb.set_tab_reorderable(wv, true);
 
-	tab->tab_close->signal_clicked().connect([this, &tab = *tab] {
+	tab->tab_close.signal_clicked().connect([this, &tab = *tab] {
 		// NOTE: This is very fast because it does not need to
 		// dereference every pointer in the tabs vector, but it
 		// relies on the Tab struct never being moved.  Currently
@@ -286,7 +281,7 @@ int Browser::open_new_tab(const Glib::ustring& uri) {
 		auto& wv = tab.wv;
 		auto c_title = webkit_web_view_get_title(wv.gobj());
 		Glib::ustring title{c_title ? c_title : "(Untitled)"};
-		tab.tab_title->set_text(title);
+		tab.tab_title.set_text(title);
 		if (visable_tab.webview == &wv) {
 			set_title(title);
 		}
