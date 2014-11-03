@@ -161,7 +161,9 @@ Glib::ustring URIEntry::get_uri() {
 }
 
 void URIEntry::set_uri(const Glib::ustring& uri) {
-	entry.set_text(uri);
+	if (!entry.is_focus()) {
+		entry.set_text(uri);
+	}
 }
 
 void URIEntry::grab_focus() {
