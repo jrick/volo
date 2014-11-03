@@ -263,7 +263,7 @@ int Browser::open_new_tab(const Glib::ustring& uri) {
 			// Compare using pointer equality.  We intentionally
 			// captured a reference to the Tab, and not the
 			// vector's unique_ptr<Tab>, so that we could take the
-			// address of the actual WebView object without the
+			// address of the actual Tab object without the
 			// vector's unique_ptr having been zeroed after a move.
 			if (it->get() != &tab) {
 				continue;
