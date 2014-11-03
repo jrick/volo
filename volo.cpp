@@ -173,11 +173,21 @@ void URIEntry::grab_focus() {
 // This can't be a lambda since we can't create sigc::slots from lambdas
 // with return values.
 bool URIEntry::on_button_release_event(GdkEventButton *) {
-	if (!editing && !refresh_pressed) {
-		int start, end;
-		if (!entry.get_selection_bounds(start, end)) {
-			entry.grab_focus();
-		}
+	// If the entry's refresh button was pressed, we do not set
+	// editing mode to true and do not grab focus to highlight
+	// all text in the entry.
+	if (refresh_pressed) {
+		return false;
+	}
+
+	// If the refresh button was not pressed, and we haven't previously
+	// grabbed focus, do so now.  The editing flag will be unset after
+	// focus leaves the entry, but until then, the text inside entry can
+	// be modified and clicked without forcably selecting all of the text
+	// again.
+	int start, end;
+	if (!editing && !entry.get_selection_bounds(start, end)) {
+		entry.grab_focus();
 	}
 	editing = true;
 	return false;
