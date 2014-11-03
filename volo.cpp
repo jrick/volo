@@ -3,7 +3,6 @@
 // license that can be found in the LICENSE file.
 
 #include <volo.h>
-#include <iostream>
 
 using namespace volo;
 
