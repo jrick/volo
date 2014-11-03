@@ -35,7 +35,7 @@ static void WebView_notify_uri_callback(GObject *, GParamSpec *, gpointer signal
 	static_cast<sigc::signal<void> *>(signal)->emit();
 }
 
-WebView::WebView(WebKitWebView *wv) : Gtk::Widget{GTK_WIDGET(wv)} {
+WebView::WebView(WebKitWebView *wv) : Gtk::Widget{reinterpret_cast<GtkWidget *>(wv)} {
 	g_signal_connect(wv, "load-changed",
 		G_CALLBACK(WebView_load_changed_callback),
 		&signal_load_changed);
