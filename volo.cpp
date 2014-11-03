@@ -7,7 +7,7 @@
 using namespace volo;
 
 WebContext WebContext::get_default() {
-	return WebContext{};
+	return WebContext{webkit_web_context_get_default()};
 }
 
 void WebContext::set_process_model(WebKitProcessModel model) {

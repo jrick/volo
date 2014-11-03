@@ -58,7 +58,7 @@ protected:
 	// Constructor to wrap the default web context.  This is not public
 	// since it may be possible to construct non-default web contexts
 	// in the future.
-	WebContext() : wc{webkit_web_context_get_default()} {}
+	WebContext(WebKitWebContext *wc) : wc{wc} {}
 };
 
 
