@@ -11,9 +11,15 @@ const std::array<Glib::ustring, 2> recognized_uri_schemes = { {
 	"https://",
 } };
 
+// has_prefix returns whether the p is a prefix of s.
+template <typename T>
+bool has_prefix(T s, T p) {
+	return s.size() >= p.size() && std::equal(p.begin(), p.end(), s.begin());
+}
+
 void guess_uri(Glib::ustring& uri) {
 	for (auto& scheme : recognized_uri_schemes) {
-		if (uri.compare(0, scheme.size(), scheme) == 0) {
+		if (has_prefix(uri, scheme)) {
 			return;
 		}
 	}
