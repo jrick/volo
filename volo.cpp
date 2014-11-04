@@ -208,6 +208,8 @@ Browser::Browser(const std::vector<Glib::ustring>& uris) {
 	fwd.set_image_from_icon_name("go-next");
 	new_tab.set_image_from_icon_name("add");
 
+	back.set_can_focus(false);
+	fwd.set_can_focus(false);
 	auto histnav_style = histnav.get_style_context();
 	histnav_style->add_class("raised");
 	histnav_style->add_class("linked");
