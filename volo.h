@@ -179,7 +179,7 @@ private:
 	URIEntry nav_entry;
 	Gtk::Notebook nb;
 	// Details about the currently shown page.
-	std::array<sigc::connection, 5> page_signals;
+	std::array<sigc::connection, 6> page_signals;
 	struct VisableTab {
 		unsigned int tab_index{0};
 		WebView *webview{nullptr};

@@ -3,6 +3,7 @@
 // license that can be found in the LICENSE file.
 
 #include <volo.h>
+#include <algorithm>
 
 using namespace volo;
 
@@ -284,7 +285,7 @@ int Browser::open_new_tab(const Glib::ustring& uri) {
 	wv.show_all();
 	tab_content->show_all();
 	const auto n = nb.append_page(wv, *tab_content);
-	//nb.set_tab_reorderable(wv, true);
+	nb.set_tab_reorderable(wv, true);
 
 	tab->tab_close.signal_clicked().connect([this, &tab = *tab] {
 		// NOTE: This is very fast because it does not need to
@@ -346,6 +347,26 @@ void Browser::show_webview(unsigned int page_num, WebView& wv) {
 		nav_entry.connect_refresh([&wv] {
 			wv.reload();
 			wv.grab_focus();
+		}),
+		nb.signal_page_reordered().connect([this](auto, guint new_idx) {
+			// NOTE: This only works when reordering the current visable tab.
+			// However, this appears to be a safe assumption since, at least
+			// when using the mouse to drag and drop tabs (which is the only
+			// method we have of reordering them), the tab being reordered
+			// is always focused first.
+			auto old_idx = visable_tab.tab_index;
+			auto tmp = std::move(tabs[old_idx]);
+			if (old_idx < new_idx) {
+				// Moving the range [old_idx+1, new_idx+1) to [old_idx, new_idx).
+				std::move(tabs.begin()+old_idx+1, tabs.begin()+new_idx+1,
+					tabs.begin()+old_idx);
+			} else {
+				// Moving the range [new_idx, old_idx) to [new_idx+1, old_idx+1).
+				std::move_backward(tabs.begin()+new_idx, tabs.begin()+old_idx,
+					tabs.begin()+old_idx+1);
+			}
+			tabs[new_idx] = std::move(tmp);
+			visable_tab.tab_index = new_idx;
 		}),
 	} };
 
