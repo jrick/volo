@@ -27,7 +27,7 @@ void guess_uri(Glib::ustring& uri) {
 }
 
 WebContext WebContext::get_default() {
-	return WebContext{webkit_web_context_get_default()};
+	return webkit_web_context_get_default();
 }
 
 void WebContext::set_process_model(WebKitProcessModel model) {
@@ -324,7 +324,7 @@ int Browser::open_new_tab(const Glib::ustring& uri) {
 }
 
 void Browser::show_webview(unsigned int page_num, WebView& wv) {
-	visable_tab = VisableTab{page_num, wv};
+	visable_tab = {page_num, wv};
 
 	// Update navbar/titlebar with the current state of the webview being
 	// shown.
