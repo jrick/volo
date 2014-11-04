@@ -343,7 +343,10 @@ void Browser::show_webview(unsigned int page_num, WebView& wv) {
 			}
 		}),
 		wv.connect_notify_uri([this, &wv] { nav_entry.set_uri(wv.get_uri()); }),
-		nav_entry.connect_refresh([&wv] { wv.reload(); }),
+		nav_entry.connect_refresh([&wv] {
+			wv.reload();
+			wv.grab_focus();
+		}),
 	} };
 
 	// Grab URI entry focus if the shown tab is blank.
