@@ -284,7 +284,7 @@ int Browser::open_new_tab(const Glib::ustring& uri) {
 	wv.show_all();
 	tab_content->show_all();
 	const auto n = nb.append_page(wv, *tab_content);
-	nb.set_tab_reorderable(wv, true);
+	//nb.set_tab_reorderable(wv, true);
 
 	tab->tab_close.signal_clicked().connect([this, &tab = *tab] {
 		// NOTE: This is very fast because it does not need to
