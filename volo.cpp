@@ -286,6 +286,7 @@ bool Browser::on_key_press_event(GdkEventKey *ev) {
 			}
 			break;
 		case GDK_KEY_q:
+			tabs.clear();
 			destroy_();
 			break;
 		}
