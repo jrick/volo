@@ -275,22 +275,23 @@ bool Browser::on_key_press_event(GdkEventKey *ev) {
 		switch (ev->keyval) {
 		case GDK_KEY_l:
 			nav_entry.grab_focus();
-			break;
+			return true;
 		case GDK_KEY_t:
 			nb.set_current_page(open_new_tab(""));
-			break;
+			return true;
 		case GDK_KEY_w:
 			tabs.erase(tabs.begin() + visable_tab.tab_index);
 			if (tabs.size() == 0) {
 				destroy_();
 			}
-			break;
+			return true;
 		case GDK_KEY_q:
 			tabs.clear();
 			destroy_();
-			break;
+			return true;
 		}
 	}
+
 	return false;
 }
 
