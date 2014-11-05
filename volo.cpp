@@ -275,6 +275,7 @@ bool Browser::on_key_press_event(GdkEventKey *ev) {
 		switch (ev->keyval) {
 		case GDK_KEY_l:
 			nav_entry.grab_focus();
+			break;
 		case GDK_KEY_t:
 			nb.set_current_page(open_new_tab(""));
 			break;
