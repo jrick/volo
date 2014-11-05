@@ -14,7 +14,7 @@ const std::array<Glib::ustring, 2> recognized_uri_schemes = { {
 
 // has_prefix returns whether the p is a prefix of s.
 template <typename T>
-bool has_prefix(T s, T p) {
+bool has_prefix(const T& s, const T& p) {
 	return s.size() >= p.size() && std::equal(p.begin(), p.end(), s.begin());
 }
 
