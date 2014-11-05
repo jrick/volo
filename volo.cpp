@@ -282,11 +282,11 @@ bool Browser::on_key_press_event(GdkEventKey *ev) {
 		case GDK_KEY_w:
 			tabs.erase(tabs.begin() + visable_tab.tab_index);
 			if (tabs.size() == 0) {
-				close();
+				destroy_();
 			}
 			break;
 		case GDK_KEY_q:
-			close();
+			destroy_();
 			break;
 		}
 	}
@@ -336,7 +336,7 @@ int Browser::open_new_tab(const Glib::ustring& uri) {
 			break;
 		}
 		if (tabs.size() == 0) {
-			close();
+			destroy_();
 		}
 	});
 	wv.connect_notify_title([this, &tab = *tab] {
