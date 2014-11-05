@@ -20,7 +20,7 @@ bool has_prefix(const T& s, const T& p) {
 }
 
 void guess_uri(Glib::ustring& uri) {
-	for (auto& scheme : recognized_uri_schemes) {
+	for (const auto& scheme : recognized_uri_schemes) {
 		if (has_prefix(uri, scheme)) {
 			return;
 		}
