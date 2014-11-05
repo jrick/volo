@@ -267,7 +267,7 @@ Browser::Browser(const std::vector<Glib::ustring>& uris) {
 }
 
 bool Browser::on_key_press_event(GdkEventKey *ev) {
-	if ((ev->state & GDK_CONTROL_MASK) == GDK_CONTROL_MASK) {
+	if (ev->state & GDK_CONTROL_MASK) {
 		switch (ev->keyval) {
 		case GDK_KEY_l:
 			nav_entry.grab_focus();
