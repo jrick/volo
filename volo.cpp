@@ -4,6 +4,7 @@
 
 #include <volo.h>
 #include <algorithm>
+#include <gdk/gdkkeysyms.h>
 
 using namespace volo;
 
@@ -246,13 +247,13 @@ Browser::Browser(const std::vector<Glib::ustring>& uris) {
 		visable_tab.webview->load_uri(uri);
 		visable_tab.webview->grab_focus();
 	});
-	nb.signal_switch_page().connect([this] (auto, guint page_num) {
+	nb.signal_switch_page().connect([this](auto, guint page_num) {
 		switch_page(page_num);
 	});
-	nb.signal_page_added().connect([this] (...) {
+	nb.signal_page_added().connect([this](...) {
 		nb.set_show_tabs(true);
 	});
-	nb.signal_page_removed().connect([this] (...) {
+	nb.signal_page_removed().connect([this](...) {
 		nb.set_show_tabs(nb.get_n_pages() > 1);
 	});
 	new_tab.signal_clicked().connect([this] {
@@ -263,6 +264,29 @@ Browser::Browser(const std::vector<Glib::ustring>& uris) {
 	show_webview(0, tabs.front()->wv);
 
 	show_all_children();
+}
+
+bool Browser::on_key_press_event(GdkEventKey *ev) {
+	if ((ev->state & GDK_CONTROL_MASK) == GDK_CONTROL_MASK) {
+		switch (ev->keyval) {
+		case GDK_KEY_l:
+			nav_entry.grab_focus();
+			return false;
+		case GDK_KEY_t:
+			nb.set_current_page(open_new_tab(""));
+			return false;
+		case GDK_KEY_w:
+			tabs.erase(tabs.begin() + visable_tab.tab_index);
+			if (tabs.size() == 0) {
+				close();
+			}
+			return false;
+		case GDK_KEY_q:
+			close();
+			return false;
+		}
+	}
+	return Gtk::Widget::on_key_press_event(ev);
 }
 
 Browser::Tab::Tab(const Glib::ustring& uri) : wv{uri}, tab_title{"New tab"} {

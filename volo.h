@@ -206,6 +206,7 @@ private:
 	void show_webview(unsigned int, WebView&);
 	void switch_page(unsigned int) noexcept;
 	void update_histnav(WebView&);
+	bool on_key_press_event(GdkEventKey *) override;
 };
 
 } // namespace volo
