@@ -267,26 +267,29 @@ Browser::Browser(const std::vector<Glib::ustring>& uris) {
 }
 
 bool Browser::on_key_press_event(GdkEventKey *ev) {
-	if (ev->state & GDK_CONTROL_MASK) {
+	if (Gtk::Widget::on_key_press_event(ev)) {
+		return true;
+	}
+
+	if (ev->state == GDK_CONTROL_MASK) {
 		switch (ev->keyval) {
 		case GDK_KEY_l:
 			nav_entry.grab_focus();
-			return false;
 		case GDK_KEY_t:
 			nb.set_current_page(open_new_tab(""));
-			return false;
+			break;
 		case GDK_KEY_w:
 			tabs.erase(tabs.begin() + visable_tab.tab_index);
 			if (tabs.size() == 0) {
 				close();
 			}
-			return false;
+			break;
 		case GDK_KEY_q:
 			close();
-			return false;
+			break;
 		}
 	}
-	return Gtk::Widget::on_key_press_event(ev);
+	return false;
 }
 
 Browser::Tab::Tab(const Glib::ustring& uri) : wv{uri}, tab_title{"New tab"} {
