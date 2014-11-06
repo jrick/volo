@@ -126,59 +126,33 @@ URIEntry::URIEntry() {
 	set_size_request(600, -1); // TODO: make this dynamic with the window size
 	set_margin_left(6);
 	set_margin_right(6);
-	entry.set_hexpand(true);
+	set_hexpand(true);
 
-	entry.set_input_purpose(Gtk::INPUT_PURPOSE_URL);
-	entry.set_icon_from_icon_name("view-refresh", Gtk::ENTRY_ICON_SECONDARY);
+	set_input_purpose(Gtk::INPUT_PURPOSE_URL);
+	set_icon_from_icon_name("view-refresh", Gtk::ENTRY_ICON_SECONDARY);
 
-	entry.signal_button_release_event().connect(sigc::mem_fun(*this,
-		&URIEntry::on_button_release_event), false);
-	entry.property_is_focus().signal_changed().connect([this](...) {
-		if (!entry.is_focus()) {
-			entry.select_region(0, 0);
-			editing = false;
-		}
-	});
-	entry.signal_icon_press().connect([this](Gtk::EntryIconPosition pos, ...) {
+	signal_icon_press().connect([this](Gtk::EntryIconPosition pos, ...) {
 		refresh_pressed = true;
 	});
-	entry.signal_icon_release().connect([this](Gtk::EntryIconPosition pos, ...) {
-		if (refresh_pressed) {
-			signal_refresh.emit();
-		}
-		refresh_pressed = false;
-	});
-
-	add(entry);
-
-	show_all_children();
 }
 
 Glib::SignalProxy0<void> URIEntry::signal_uri_entered() {
-	return entry.signal_activate();
-}
-
-Glib::ustring URIEntry::get_uri() {
-	return entry.get_text();
+	return signal_activate();
 }
 
 void URIEntry::set_uri(const Glib::ustring& uri) {
-	if (!entry.is_focus()) {
-		entry.set_text(uri);
+	if (!has_grab()) {
+		set_text(uri);
 	}
 }
 
-void URIEntry::grab_focus() {
-	entry.grab_focus();
-}
-
-// This can't be a lambda since we can't create sigc::slots from lambdas
-// with return values.
-bool URIEntry::on_button_release_event(GdkEventButton *) {
-	// If the entry's refresh button was pressed, we do not set
-	// editing mode to true and do not grab focus to highlight
-	// all text in the entry.
+bool URIEntry::on_button_release_event(GdkEventButton *ev) {
+	// If the entry's refresh button was pressed, fire the refresh
+	// signal.  In this case we do not set editing mode to true and
+	// do not grab focus to highlight all text in the entry.
 	if (refresh_pressed) {
+		signal_refresh.emit();
+		refresh_pressed = false;
 		return false;
 	}
 
@@ -188,11 +162,17 @@ bool URIEntry::on_button_release_event(GdkEventButton *) {
 	// be modified and clicked without forcably selecting all of the text
 	// again.
 	int start, end;
-	if (!editing && !entry.get_selection_bounds(start, end)) {
-		entry.grab_focus();
+	if (!editing && !get_selection_bounds(start, end)) {
+		grab_focus();
 	}
 	editing = true;
-	return false;
+	return Gtk::Entry::on_button_release_event(ev);
+}
+
+bool URIEntry::on_focus_out_event(GdkEventFocus *f) {
+	select_region(0, 0);
+	editing = false;
+	return Gtk::Entry::on_focus_out_event(f);
 }
 
 sigc::connection URIEntry::connect_refresh(std::function<void()> handler) {
@@ -242,7 +222,7 @@ Browser::Browser(const std::vector<Glib::ustring>& uris) {
 	}
 
 	nav_entry.signal_uri_entered().connect([this] {
-		auto uri = nav_entry.get_uri();
+		auto uri = nav_entry.get_text();
 		guess_uri(uri);
 		visable_tab.webview->load_uri(uri);
 		visable_tab.webview->grab_focus();

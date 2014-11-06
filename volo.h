@@ -117,9 +117,8 @@ public:
 
 // URIEntry represents the URI entry box that is used as the Browser
 // window's custom title.
-class URIEntry : public Gtk::Box {
+class URIEntry : public Gtk::Entry {
 private:
-	Gtk::Entry entry;
 	bool editing{false};
 	bool refresh_pressed{false};
 
@@ -130,12 +129,10 @@ public:
 	// Default constructor.  No surprises here.
 	URIEntry();
 
-	// Getters and setters for the text in the URI entry.
-	Glib::ustring get_uri();
+	// Setter for the text in the URI entry.  This only modifies the
+	// text if the entry is not receiving input events (that is, when
+	// it is not the grab widget).
 	void set_uri(const Glib::ustring& uri);
-
-	// grab_focus focuses the URI entry widget.
-	void grab_focus();
 
 	// signal_uri_entered returns a connectable signal which fires
 	// whenever the URI is entered by the user using the entry.
@@ -144,8 +141,9 @@ public:
 	// Signal connections.
 	sigc::connection connect_refresh(std::function<void()>);
 
-private:
-	bool on_button_release_event(GdkEventButton *);
+protected:
+	bool on_button_release_event(GdkEventButton *) override;
+	bool on_focus_out_event(GdkEventFocus *) override;
 };
 
 
@@ -206,6 +204,8 @@ private:
 	void show_webview(unsigned int, WebView&);
 	void switch_page(unsigned int) noexcept;
 	void update_histnav(WebView&);
+
+protected:
 	bool on_key_press_event(GdkEventKey *) override;
 };
 
