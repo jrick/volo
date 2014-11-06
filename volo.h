@@ -154,7 +154,7 @@ protected:
 // the navigation bar.
 //
 // A Browser will show no less than one tab at all times.  Removing the last
-// tab will open a new one to the blank page.
+// tab will close the browser.
 class Browser : public Gtk::Window {
 private:
 	// Tab represents the widgets added to the Browser's notebook.  Note
