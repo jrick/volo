@@ -247,12 +247,37 @@ Browser::Browser(const std::vector<Glib::ustring>& uris) {
 }
 
 bool Browser::on_key_press_event(GdkEventKey *ev) {
+	auto kv = ev->keyval;
+
+	if (ev->state == (GDK_CONTROL_MASK|GDK_SHIFT_MASK)) {
+		if (kv == GDK_KEY_ISO_Left_Tab) {
+			auto n = nb.get_current_page();
+			if (n == 0) {
+				n = tabs.size() - 1;
+			} else {
+				--n;
+			}
+			switch_page(n);
+			nb.set_current_page(n);
+			return true;
+		}
+	} else if (ev->state == GDK_CONTROL_MASK) {
+		if (kv == GDK_KEY_Tab) {
+			auto n = nb.get_current_page();
+			if (++n == tabs.size()) {
+				n = 0;
+			}
+			switch_page(n);
+			nb.set_current_page(n);
+			return true;
+		}
+	}
+
 	if (Gtk::Widget::on_key_press_event(ev)) {
 		return true;
 	}
 
 	if (ev->state == GDK_CONTROL_MASK) {
-		auto kv = ev->keyval;
 		if (kv == GDK_KEY_l) {
 			nav_entry.grab_focus();
 			return true;
