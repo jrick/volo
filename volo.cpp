@@ -252,22 +252,35 @@ bool Browser::on_key_press_event(GdkEventKey *ev) {
 	}
 
 	if (ev->state == GDK_CONTROL_MASK) {
-		switch (ev->keyval) {
-		case GDK_KEY_l:
+		auto kv = ev->keyval;
+		if (kv == GDK_KEY_l) {
 			nav_entry.grab_focus();
 			return true;
-		case GDK_KEY_t:
-			nb.set_current_page(open_new_tab(""));
+		} else if (kv == GDK_KEY_t) {
+			auto n = open_new_tab("");
+			nb.set_current_page(n);
 			return true;
-		case GDK_KEY_w:
+		} else if (kv == GDK_KEY_w) {
 			tabs.erase(tabs.begin() + visable_tab.tab_index);
 			if (tabs.size() == 0) {
 				destroy_();
 			}
 			return true;
-		case GDK_KEY_q:
+		} else if (kv == GDK_KEY_q) {
 			tabs.clear();
 			destroy_();
+			return true;
+		} else if (kv >= GDK_KEY_1 && kv <= GDK_KEY_8) {
+			auto n = kv - GDK_KEY_1;
+			if (tabs.size() > n) {
+				switch_page(n);
+				nb.set_current_page(n);
+			}
+			return true;
+		} else if (kv == GDK_KEY_9) {
+			auto n = tabs.size() - 1;
+			switch_page(n);
+			nb.set_current_page(n);
 			return true;
 		}
 	}
