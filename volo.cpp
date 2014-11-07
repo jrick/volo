@@ -388,6 +388,8 @@ void Browser::show_webview(unsigned int page_num, WebView& wv) {
 	// grabbing the entry focus has no effect.
 	if (uri == "") {
 		nav_entry.grab_focus();
+	} else {
+		wv.grab_focus();
 	}
 }
 
