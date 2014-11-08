@@ -7,6 +7,7 @@
 
 #include <array>
 #include <vector>
+#include <utility>
 
 #include <gtkmm.h>
 #include <webkit2/webkit2.h>
@@ -26,7 +27,7 @@ namespace volo {
 // to a container, or the allocation will leak.
 template<typename T, typename... Args>
 T* make_managed(Args&&... args) {
-	return Gtk::manage(new T{args...});
+	return Gtk::manage(new T{std::forward<T>(args)...});
 }
 
 // WebContext wraps the default WebKitWebContext.  Non-default contexts may be
