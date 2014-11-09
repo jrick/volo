@@ -343,7 +343,7 @@ int Browser::open_new_tab(const Glib::ustring& uri) {
 		// relies on the Tab struct never being moved.  Currently
 		// this holds true because moving for this type is disabled
 		// (no move constructors or assignment operators exists).
-		for (auto it = tabs.begin(); it != tabs.end(); ++it) {
+		for (auto it = tabs.begin(), ite = tabs.end(); it != ite; ++it) {
 			// Compare using pointer equality.  We intentionally
 			// captured a reference to the Tab, and not the
 			// vector's unique_ptr<Tab>, so that we could take the
