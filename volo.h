@@ -27,7 +27,7 @@ namespace volo {
 // to a container, or the allocation will leak.
 template<typename T, typename... Args>
 T* make_managed(Args&&... args) {
-	return Gtk::manage(new T{std::forward<T>(args)...});
+	return Gtk::manage(new T{std::forward<Args>(args)...});
 }
 
 // WebContext wraps the default WebKitWebContext.  Non-default contexts may be
