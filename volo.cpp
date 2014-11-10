@@ -28,101 +28,101 @@ void guess_uri(Glib::ustring& uri) {
 	uri = "http://" + uri;
 }
 
-WebContext WebContext::get_default() {
+web_context web_context::get_default() {
 	return webkit_web_context_get_default();
 }
 
-void WebContext::set_process_model(WebKitProcessModel model) {
+void web_context::set_process_model(WebKitProcessModel model) {
 	webkit_web_context_set_process_model(wc, model);
 }
 
 
-static void WebView_load_changed_callback(WebKitWebView *wv,
+static void web_view_load_changed_callback(WebKitWebView *wv,
 	WebKitLoadEvent ev, gpointer signal) {
 
 	static_cast<sigc::signal<void, WebKitLoadEvent> *>(signal)->emit(ev);
 }
 
-static void BackForwardList_changed_callback(WebKitBackForwardList *list,
+static void back_forward_list_changed_callback(WebKitBackForwardList *list,
 	WebKitBackForwardListItem *item, gpointer removed, gpointer signal) {
 
 	static_cast<sigc::signal<void, WebKitBackForwardList *> *>(signal)->emit(list);
 }
 
-static void WebView_notify_title_callback(GObject *, GParamSpec *, gpointer signal) {
+static void web_view_notify_title_callback(GObject *, GParamSpec *, gpointer signal) {
 	static_cast<sigc::signal<void> *>(signal)->emit();
 }
 
-static void WebView_notify_uri_callback(GObject *, GParamSpec *, gpointer signal) {
+static void web_view_notify_uri_callback(GObject *, GParamSpec *, gpointer signal) {
 	static_cast<sigc::signal<void> *>(signal)->emit();
 }
 
-WebView::WebView(WebKitWebView *wv) : Gtk::Widget{reinterpret_cast<GtkWidget *>(wv)} {
+web_view::web_view(WebKitWebView *wv) : Gtk::Widget{reinterpret_cast<GtkWidget *>(wv)} {
 	g_signal_connect(wv, "load-changed",
-		G_CALLBACK(WebView_load_changed_callback),
+		G_CALLBACK(web_view_load_changed_callback),
 		&signal_load_changed);
 
 	auto bfl = webkit_web_view_get_back_forward_list(wv);
 	g_signal_connect(bfl, "changed",
-		G_CALLBACK(BackForwardList_changed_callback),
+		G_CALLBACK(back_forward_list_changed_callback),
 		&signal_back_forward_list_changed);
 
 	g_signal_connect(wv, "notify::title",
-		G_CALLBACK(WebView_notify_title_callback),
+		G_CALLBACK(web_view_notify_title_callback),
 		&signal_notify_title);
 
 	g_signal_connect(wv, "notify::uri",
-		G_CALLBACK(WebView_notify_uri_callback),
+		G_CALLBACK(web_view_notify_uri_callback),
 		&signal_notify_uri);
 }
 
-WebView::WebView(const Glib::ustring& uri) : WebView{} {
+web_view::web_view(const Glib::ustring& uri) : web_view{} {
 	load_uri(uri);
 }
 
-void WebView::load_uri(const Glib::ustring& uri) {
+void web_view::load_uri(const Glib::ustring& uri) {
 	webkit_web_view_load_uri(gobj(), uri.c_str());
 }
 
-Glib::ustring WebView::get_uri() {
+Glib::ustring web_view::get_uri() {
 	auto uri = webkit_web_view_get_uri(gobj());
 	return uri ? uri : "";
 }
 
-void WebView::reload() {
+void web_view::reload() {
 	webkit_web_view_reload(gobj());
 }
 
-void WebView::go_back() {
+void web_view::go_back() {
 	webkit_web_view_go_back(gobj());
 }
 
-void WebView::go_forward() {
+void web_view::go_forward() {
 	webkit_web_view_go_forward(gobj());
 }
 
-sigc::connection WebView::connect_load_changed(
+sigc::connection web_view::connect_load_changed(
 	std::function<void(WebKitLoadEvent)> handler) {
 
 	return signal_load_changed.connect(handler);
 }
 
-sigc::connection WebView::connect_back_forward_list_changed(
+sigc::connection web_view::connect_back_forward_list_changed(
 	std::function<void(WebKitBackForwardList *)> handler) {
 
 	return signal_back_forward_list_changed.connect(handler);
 }
 
-sigc::connection WebView::connect_notify_title(std::function<void()> handler) {
+sigc::connection web_view::connect_notify_title(std::function<void()> handler) {
 	return signal_notify_title.connect(handler);
 }
 
-sigc::connection WebView::connect_notify_uri(std::function<void()> handler) {
+sigc::connection web_view::connect_notify_uri(std::function<void()> handler) {
 	return signal_notify_uri.connect(handler);
 }
 
 
-URIEntry::URIEntry() {
+uri_entry::uri_entry() {
 	set_size_request(600, -1); // TODO: make this dynamic with the window size
 	set_margin_left(6);
 	set_margin_right(6);
@@ -136,17 +136,17 @@ URIEntry::URIEntry() {
 	});
 }
 
-Glib::SignalProxy0<void> URIEntry::signal_uri_entered() {
+Glib::SignalProxy0<void> uri_entry::signal_uri_entered() {
 	return signal_activate();
 }
 
-void URIEntry::set_uri(const Glib::ustring& uri) {
+void uri_entry::set_uri(const Glib::ustring& uri) {
 	if (!has_grab()) {
 		set_text(uri);
 	}
 }
 
-bool URIEntry::on_button_release_event(GdkEventButton *ev) {
+bool uri_entry::on_button_release_event(GdkEventButton *ev) {
 	// If the entry's refresh button was pressed, fire the refresh
 	// signal.  In this case we do not set editing mode to true and
 	// do not grab focus to highlight all text in the entry.
@@ -169,21 +169,21 @@ bool URIEntry::on_button_release_event(GdkEventButton *ev) {
 	return Gtk::Entry::on_button_release_event(ev);
 }
 
-bool URIEntry::on_focus_out_event(GdkEventFocus *f) {
+bool uri_entry::on_focus_out_event(GdkEventFocus *f) {
 	select_region(0, 0);
 	editing = false;
 	return Gtk::Entry::on_focus_out_event(f);
 }
 
-sigc::connection URIEntry::connect_refresh(std::function<void()> handler) {
+sigc::connection uri_entry::connect_refresh(std::function<void()> handler) {
 	return signal_refresh.connect(handler);
 }
 
 
-Browser::Browser(const std::vector<Glib::ustring>& uris) {
+browser::browser(const std::vector<Glib::ustring>& uris) {
 	// Set navigation button images.  No gtkmm constructor wraps
 	// gtk_button_new_from_icon_name (due to a conflict with
-	// gtk_button_new_with_label) so this must be done in the Browser
+	// gtk_button_new_with_label) so this must be done in the browser
 	// constructor.
 	back.set_image_from_icon_name("go-previous");
 	fwd.set_image_from_icon_name("go-next");
@@ -246,7 +246,7 @@ Browser::Browser(const std::vector<Glib::ustring>& uris) {
 	show_all_children();
 }
 
-bool Browser::on_key_press_event(GdkEventKey *ev) {
+bool browser::on_key_press_event(GdkEventKey *ev) {
 	auto kv = ev->keyval;
 
 	if (ev->state == (GDK_CONTROL_MASK|GDK_SHIFT_MASK)) {
@@ -313,7 +313,7 @@ bool Browser::on_key_press_event(GdkEventKey *ev) {
 	return false;
 }
 
-Browser::Tab::Tab(const Glib::ustring& uri) : wv{uri}, tab_title{"New tab"} {
+browser::Tab::Tab(const Glib::ustring& uri) : wv{uri}, tab_title{"New tab"} {
 	tab_title.set_can_focus(false);
 	tab_title.set_hexpand(true);
 	tab_title.set_ellipsize(Pango::ELLIPSIZE_END);
@@ -322,7 +322,7 @@ Browser::Tab::Tab(const Glib::ustring& uri) : wv{uri}, tab_title{"New tab"} {
 	tab_close.set_image_from_icon_name("window-close");
 }
 
-int Browser::open_new_tab(const Glib::ustring& uri) {
+int browser::open_new_tab(const Glib::ustring& uri) {
 	tabs.emplace_back(std::make_unique<Tab>(uri));
 	const auto& tab = tabs.back();
 	auto& wv = tab->wv;
@@ -374,7 +374,7 @@ int Browser::open_new_tab(const Glib::ustring& uri) {
 	return n;
 }
 
-void Browser::show_webview(unsigned int page_num, WebView& wv) {
+void browser::show_webview(unsigned int page_num, web_view& wv) {
 	visable_tab = {page_num, wv};
 
 	// Update navbar/titlebar with the current state of the webview being
@@ -431,15 +431,15 @@ void Browser::show_webview(unsigned int page_num, WebView& wv) {
 	}
 }
 
-void Browser::update_histnav(WebView& wv) {
+void browser::update_histnav(web_view& wv) {
 	const auto p = wv.gobj();
 	back.set_sensitive(webkit_web_view_can_go_back(p));
 	fwd.set_sensitive(webkit_web_view_can_go_forward(p));
 }
 
-void Browser::switch_page(unsigned int page_num) noexcept {
-	// Disconnect previous WebView's signals before showing and connecting
-	// the new WebView.
+void browser::switch_page(unsigned int page_num) noexcept {
+	// Disconnect previous web_view's signals before showing and connecting
+	// the new web_view.
 	for (auto& sig : page_signals) {
 		sig.disconnect();
 	}
@@ -451,9 +451,9 @@ void Browser::switch_page(unsigned int page_num) noexcept {
 int main(int argc, char **argv) {
 	const auto app = Gtk::Application::create(argc, argv, "org.jrick.volo");
 
-	auto wc = WebContext::get_default();
+	auto wc = web_context::get_default();
 	wc.set_process_model(WEBKIT_PROCESS_MODEL_MULTIPLE_SECONDARY_PROCESSES);
 
-	Browser b;
+	browser b;
 	return app->run(b);
 }

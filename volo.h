@@ -30,22 +30,22 @@ T* make_managed(Args&&... args) {
 	return Gtk::manage(new T{std::forward<Args>(args)...});
 }
 
-// WebContext wraps the default WebKitWebContext.  Non-default contexts may be
+// web_context wraps the default WebKitWebContext.  Non-default contexts may be
 // representable in later versions of WebKitGTK, but as of 2.6, it appears that
 // only the default context ever exists.
 //
 // Additional details regarding the methods wrapped by this class can be
 // found at: http://webkitgtk.org/reference/webkit2gtk/stable/WebKitWebContext.html
-class WebContext {
+class web_context {
 private:
 	// Underlying web context.
 	WebKitWebContext * const wc;
 
 public:
-	// get_default returns a WebContext wrapping the default web context.
-	// This is the only way to create a WebContext, since other contexts
+	// get_default returns a web_context wrapping the default web context.
+	// This is the only way to create a web_context, since other contexts
 	// other than the default cannot be constructed.
-	static WebContext get_default();
+	static web_context get_default();
 
 	// set_process_model modifies the process model for a web context.
 	// By default, a web context will use a single process to manage
@@ -59,16 +59,16 @@ protected:
 	// Constructor to wrap the default web context.  This is not public
 	// since it may be possible to construct non-default web contexts
 	// in the future.
-	WebContext(WebKitWebContext *wc) : wc{wc} {}
+	web_context(WebKitWebContext *wc) : wc{wc} {}
 };
 
 
-// WebView is a thin wrapper around a WebKitWebView, deriving from a gtkmm
+// web_view is a thin wrapper around a WebKitWebView, deriving from a gtkmm
 // widget so it may be used in combination with other GTK widgets.
 //
 // Additional details regarding the methods wrapped by this class can be
 // found at: http://webkitgtk.org/reference/webkit2gtk/stable/WebKitWebView.html
-class WebView : public Gtk::Widget {
+class web_view : public Gtk::Widget {
 private:
 	// Signals.
 	sigc::signal<void, WebKitLoadEvent> signal_load_changed;
@@ -80,17 +80,17 @@ public:
 	// Constructors to allocate and initialize a new WebKitWebView.  The
 	// default constructor will load the blank about page, but a string
 	// any other URI may be specified to begin loading the resource as the
-	// WebView is created.
-	WebView() : WebView{reinterpret_cast<WebKitWebView *>(webkit_web_view_new())} {}
-	WebView(const Glib::ustring&);
+	// web_view is created.
+	web_view() : web_view{reinterpret_cast<WebKitWebView *>(webkit_web_view_new())} {}
+	web_view(const Glib::ustring&);
 
-	// load_uri begins the loading the URI described by uri in the WebView.
+	// load_uri begins the loading the URI described by uri in the web_view.
 	void load_uri(const Glib::ustring&);
 
-	// get_uri returns the URI of the WebView.
+	// get_uri returns the URI of the web_view.
 	Glib::ustring get_uri();
 
-	// reload reloads the current WebView's URI.
+	// reload reloads the current web_view's URI.
 	void reload();
 
 	// go_back loads the previous history item.
@@ -106,8 +106,8 @@ public:
 	sigc::connection connect_notify_uri(std::function<void()>);
 
 protected:
-	// Constructor to create a WebView from a C pointer.
-	WebView(WebKitWebView *wv);
+	// Constructor to create a web_view from a C pointer.
+	web_view(WebKitWebView *wv);
 
 public:
 	// Accessor methods for the underlying GObject.
@@ -116,9 +116,9 @@ public:
 };
 
 
-// URIEntry represents the URI entry box that is used as the Browser
+// uri_entry represents the URI entry box that is used as the browser
 // window's custom title.
-class URIEntry : public Gtk::Entry {
+class uri_entry : public Gtk::Entry {
 private:
 	bool editing{false};
 	bool refresh_pressed{false};
@@ -128,7 +128,7 @@ private:
 
 public:
 	// Default constructor.  No surprises here.
-	URIEntry();
+	uri_entry();
 
 	// Setter for the text in the URI entry.  This only modifies the
 	// text if the entry is not receiving input events (that is, when
@@ -148,21 +148,21 @@ protected:
 };
 
 
-// Browser represents the top level widget which creates the browser.  It
+// browser represents the top level widget which creates the browser.  It
 // contains a navigation bar with buttons to move the current visable page
 // back and forward in history and a URI entry to begin loading any other
 // page.  Multiple webpages are managed via a GTK notebook with tabs under
 // the navigation bar.
 //
-// A Browser will show no less than one tab at all times.  Removing the last
+// A browser will show no less than one tab at all times.  Removing the last
 // tab will close the browser.
-class Browser : public Gtk::Window {
+class browser : public Gtk::Window {
 private:
-	// Tab represents the widgets added to the Browser's notebook.  Note
+	// Tab represents the widgets added to the browser's notebook.  Note
 	// that there is an additional box which holds the tab's title and
 	// close button that is not owned by this struct.
 	struct Tab {
-		WebView wv;
+		web_view wv;
 		Gtk::Label tab_title;
 		Gtk::Button tab_close;
 		Tab(const Glib::ustring&);
@@ -175,16 +175,16 @@ private:
 	Gtk::HeaderBar navbar;
 	Gtk::Box histnav;
 	Gtk::Button back, fwd, new_tab;
-	URIEntry nav_entry;
+	uri_entry nav_entry;
 	Gtk::Notebook nb;
 	// Details about the currently shown page.
 	std::array<sigc::connection, 6> page_signals;
 	struct VisableTab {
 		unsigned int tab_index{0};
-		WebView *webview{nullptr};
+		web_view *webview{nullptr};
 		WebKitBackForwardList *bfl{nullptr};
 		VisableTab() {}
-		VisableTab(unsigned int n, WebView& wv) : tab_index{n}, webview{&wv},
+		VisableTab(unsigned int n, web_view& wv) : tab_index{n}, webview{&wv},
 			bfl{webkit_web_view_get_back_forward_list(wv.gobj())} {}
 	} visable_tab;
 
@@ -192,19 +192,19 @@ public:
 	// Constructors to create the toplevel browser window widget.  Multiple
 	// URIs (a "session") to open may be specified, while the default
 	// constructor will open a single tab to a single blank page.
-	Browser() : Browser{{""}} {}
-	Browser(const std::vector<Glib::ustring>&);
+	browser() : browser{{""}} {}
+	browser(const std::vector<Glib::ustring>&);
 
 	// open_new_tab creates a new tab, loading the specified resource, and
-	// adds it to the Browser, appending the page to the end of the
+	// adds it to the browser, appending the page to the end of the
 	// notebook.  The notebook index is returned and may be used to switch
 	// view to the newly opened tab.
 	int open_new_tab(const Glib::ustring&);
 
 private:
-	void show_webview(unsigned int, WebView&);
+	void show_webview(unsigned int, web_view&);
 	void switch_page(unsigned int) noexcept;
-	void update_histnav(WebView&);
+	void update_histnav(web_view&);
 
 protected:
 	bool on_key_press_event(GdkEventKey *) override;
