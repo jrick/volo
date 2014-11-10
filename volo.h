@@ -148,6 +148,18 @@ protected:
 };
 
 
+// browser_tab represents the widgets added to the browser's notebook.  Note
+// that there is an additional box which holds the tab's title and close button
+// that is not owned by this struct.
+struct browser_tab {
+	web_view wv;
+	Gtk::Label tab_title;
+	Gtk::Button tab_close;
+
+	browser_tab(const Glib::ustring&);
+};
+
+
 // browser represents the top level widget which creates the browser.  It
 // contains a navigation bar with buttons to move the current visable page
 // back and forward in history and a URI entry to begin loading any other
@@ -158,20 +170,10 @@ protected:
 // tab will close the browser.
 class browser : public Gtk::Window {
 private:
-	// tab represents the widgets added to the browser's notebook.  Note
-	// that there is an additional box which holds the tab's title and
-	// close button that is not owned by this struct.
-	struct tab {
-		web_view wv;
-		Gtk::Label tab_title;
-		Gtk::Button tab_close;
-		tab(const Glib::ustring&);
-	};
-
-	// A vector of tab pointers is used instead of a vector of tabs since
-	// the tab structs cannot be moved.  This appears to be a limitation
-	// with gtkmm.
-	std::vector<std::unique_ptr<tab>> tabs;
+	// A vector of browser_tab pointers is used instead of a vector of
+	// tabs since the browser_tab structs cannot be moved.  This appears
+	// to be a limitation with gtkmm.
+	std::vector<std::unique_ptr<browser_tab>> tabs;
 	Gtk::HeaderBar navbar;
 	Gtk::Box histnav;
 	Gtk::Button back, fwd, new_tab;
