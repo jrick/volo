@@ -313,7 +313,7 @@ bool browser::on_key_press_event(GdkEventKey *ev) {
 	return false;
 }
 
-browser::Tab::Tab(const Glib::ustring& uri) : wv{uri}, tab_title{"New tab"} {
+browser::tab::tab(const Glib::ustring& uri) : wv{uri}, tab_title{"New tab"} {
 	tab_title.set_can_focus(false);
 	tab_title.set_hexpand(true);
 	tab_title.set_ellipsize(Pango::ELLIPSIZE_END);
@@ -323,7 +323,7 @@ browser::Tab::Tab(const Glib::ustring& uri) : wv{uri}, tab_title{"New tab"} {
 }
 
 int browser::open_new_tab(const Glib::ustring& uri) {
-	tabs.emplace_back(std::make_unique<Tab>(uri));
+	tabs.emplace_back(std::make_unique<tab>(uri));
 	const auto& tab = tabs.back();
 	auto& wv = tab->wv;
 
@@ -340,14 +340,14 @@ int browser::open_new_tab(const Glib::ustring& uri) {
 	tab->tab_close.signal_clicked().connect([this, &tab = *tab] {
 		// NOTE: This is very fast because it does not need to
 		// dereference every pointer in the tabs vector, but it
-		// relies on the Tab struct never being moved.  Currently
+		// relies on the tab struct never being moved.  Currently
 		// this holds true because moving for this type is disabled
 		// (no move constructors or assignment operators exists).
 		for (auto it = tabs.begin(), ite = tabs.end(); it != ite; ++it) {
 			// Compare using pointer equality.  We intentionally
-			// captured a reference to the Tab, and not the
-			// vector's unique_ptr<Tab>, so that we could take the
-			// address of the actual Tab object without the
+			// captured a reference to the tab, and not the
+			// vector's unique_ptr<tab>, so that we could take the
+			// address of the actual tab object without the
 			// vector's unique_ptr having been zeroed after a move.
 			if (it->get() != &tab) {
 				continue;

@@ -158,20 +158,20 @@ protected:
 // tab will close the browser.
 class browser : public Gtk::Window {
 private:
-	// Tab represents the widgets added to the browser's notebook.  Note
+	// tab represents the widgets added to the browser's notebook.  Note
 	// that there is an additional box which holds the tab's title and
 	// close button that is not owned by this struct.
-	struct Tab {
+	struct tab {
 		web_view wv;
 		Gtk::Label tab_title;
 		Gtk::Button tab_close;
-		Tab(const Glib::ustring&);
+		tab(const Glib::ustring&);
 	};
 
-	// A vector of Tab pointers is used instead of a vector of Tabs since
-	// the Tab structs cannot be moved.  This appears to be a limitation
+	// A vector of tab pointers is used instead of a vector of tabs since
+	// the tab structs cannot be moved.  This appears to be a limitation
 	// with gtkmm.
-	std::vector<std::unique_ptr<Tab>> tabs;
+	std::vector<std::unique_ptr<tab>> tabs;
 	Gtk::HeaderBar navbar;
 	Gtk::Box histnav;
 	Gtk::Button back, fwd, new_tab;
@@ -179,12 +179,12 @@ private:
 	Gtk::Notebook nb;
 	// Details about the currently shown page.
 	std::array<sigc::connection, 6> page_signals;
-	struct VisableTab {
+	struct visable_tab {
 		unsigned int tab_index{0};
 		web_view *webview{nullptr};
 		WebKitBackForwardList *bfl{nullptr};
-		VisableTab() {}
-		VisableTab(unsigned int n, web_view& wv) : tab_index{n}, webview{&wv},
+		visable_tab() {}
+		visable_tab(unsigned int n, web_view& wv) : tab_index{n}, webview{&wv},
 			bfl{webkit_web_view_get_back_forward_list(wv.gobj())} {}
 	} visable_tab;
 
