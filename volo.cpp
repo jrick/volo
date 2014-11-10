@@ -166,7 +166,7 @@ bool uri_entry::on_button_release_event(GdkEventButton *ev) {
 		grab_focus();
 	}
 	editing = true;
-		return Gtk::Entry::on_button_release_event(ev);
+	return Gtk::Entry::on_button_release_event(ev);
 }
 
 bool uri_entry::on_focus_out_event(GdkEventFocus *f) {
