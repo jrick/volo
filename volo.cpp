@@ -177,7 +177,7 @@ bool browser::on_window_key_press_event(gtk::widget<gtk::window<>::c_type>& wind
 		}
 	}
 
-	return false;
+	return true;
 }
 
 void browser::on_window_destroy(gtk::widget<gtk::window<>::c_type>& w) {
