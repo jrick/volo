@@ -329,8 +329,8 @@ void browser::show_webview(unsigned int page_num, webkit::web_view<>& wv) {
 
 	// Grab URI entry focus if the shown tab is blank.
 	//
-	// TODO: If this webview is being shown by switching notebook tabs,
-	// grabbing the entry focus has no effect.
+	// TODO: If this webview is being shown by clicking another notebook
+	// tab, grabbing the entry focus has no effect.
 	if (uri == "") {
 		nav_entry->grab_focus();
 	} else {
