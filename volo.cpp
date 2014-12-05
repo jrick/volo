@@ -2,13 +2,15 @@
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
-#include <volo.h>
 #include <algorithm>
+
+#include <volo.h>
 #include <gdk/gdkkeysyms.h>
 
 using namespace volo;
+using namespace std::string_literals;
 
-const std::array<Glib::ustring, 2> recognized_uri_schemes = { {
+const std::array<std::string, 2> recognized_uri_schemes = { {
 	"http://",
 	"https://",
 } };
@@ -19,8 +21,8 @@ bool has_prefix(const T& s, const T& p) {
 	return s.size() >= p.size() && std::equal(p.begin(), p.end(), s.begin());
 }
 
-void guess_uri(Glib::ustring& uri) {
-	for (const auto& scheme : recognized_uri_schemes) {
+void guess_uri(std::string& uri) {
+	for (auto& scheme : recognized_uri_schemes) {
 		if (has_prefix(uri, scheme)) {
 			return;
 		}
@@ -28,284 +30,149 @@ void guess_uri(Glib::ustring& uri) {
 	uri = "http://" + uri;
 }
 
-web_context web_context::get_default() {
-	return webkit_web_context_get_default();
-}
-
-void web_context::set_process_model(WebKitProcessModel model) {
-	webkit_web_context_set_process_model(wc, model);
-}
-
-
-static void web_view_load_changed_callback(WebKitWebView *wv,
-	WebKitLoadEvent ev, gpointer signal) {
-
-	static_cast<sigc::signal<void, WebKitLoadEvent> *>(signal)->emit(ev);
-}
-
-static void back_forward_list_changed_callback(WebKitBackForwardList *list,
-	WebKitBackForwardListItem *item, gpointer removed, gpointer signal) {
-
-	static_cast<sigc::signal<void, WebKitBackForwardList *> *>(signal)->emit(list);
-}
-
-static void web_view_notify_title_callback(GObject *, GParamSpec *, gpointer signal) {
-	static_cast<sigc::signal<void> *>(signal)->emit();
-}
-
-static void web_view_notify_uri_callback(GObject *, GParamSpec *, gpointer signal) {
-	static_cast<sigc::signal<void> *>(signal)->emit();
-}
-
-web_view::web_view(WebKitWebView *wv) : Gtk::Widget{reinterpret_cast<GtkWidget *>(wv)} {
-	g_signal_connect(wv, "load-changed",
-		G_CALLBACK(web_view_load_changed_callback),
-		&signal_load_changed);
-
-	auto bfl = webkit_web_view_get_back_forward_list(wv);
-	g_signal_connect(bfl, "changed",
-		G_CALLBACK(back_forward_list_changed_callback),
-		&signal_back_forward_list_changed);
-
-	g_signal_connect(wv, "notify::title",
-		G_CALLBACK(web_view_notify_title_callback),
-		&signal_notify_title);
-
-	g_signal_connect(wv, "notify::uri",
-		G_CALLBACK(web_view_notify_uri_callback),
-		&signal_notify_uri);
-}
-
-web_view::web_view(const Glib::ustring& uri) : web_view{} {
-	load_uri(uri);
-}
-
-void web_view::load_uri(const Glib::ustring& uri) {
-	webkit_web_view_load_uri(gobj(), uri.c_str());
-}
-
-Glib::ustring web_view::get_uri() {
-	auto uri = webkit_web_view_get_uri(gobj());
-	return uri ? uri : "";
-}
-
-void web_view::reload() {
-	webkit_web_view_reload(gobj());
-}
-
-void web_view::go_back() {
-	webkit_web_view_go_back(gobj());
-}
-
-void web_view::go_forward() {
-	webkit_web_view_go_forward(gobj());
-}
-
-sigc::connection web_view::connect_load_changed(
-	std::function<void(WebKitLoadEvent)> handler) {
-
-	return signal_load_changed.connect(handler);
-}
-
-sigc::connection web_view::connect_back_forward_list_changed(
-	std::function<void(WebKitBackForwardList *)> handler) {
-
-	return signal_back_forward_list_changed.connect(handler);
-}
-
-sigc::connection web_view::connect_notify_title(std::function<void()> handler) {
-	return signal_notify_title.connect(handler);
-}
-
-sigc::connection web_view::connect_notify_uri(std::function<void()> handler) {
-	return signal_notify_uri.connect(handler);
-}
-
-
-uri_entry::uri_entry() {
-	set_size_request(600, -1); // TODO: make this dynamic with the window size
-	set_margin_left(6);
-	set_margin_right(6);
-	set_hexpand(true);
-
-	set_input_purpose(Gtk::INPUT_PURPOSE_URL);
-	set_icon_from_icon_name("view-refresh", Gtk::ENTRY_ICON_SECONDARY);
-
-	signal_icon_press().connect([this](Gtk::EntryIconPosition pos, ...) {
-		refresh_pressed = true;
-	});
-}
-
-Glib::SignalProxy0<void> uri_entry::signal_uri_entered() {
-	return signal_activate();
-}
-
-void uri_entry::set_uri(const Glib::ustring& uri) {
-	if (!has_grab()) {
-		set_text(uri);
-	}
-}
-
-bool uri_entry::on_button_release_event(GdkEventButton *ev) {
-	// If the entry's refresh button was pressed, fire the refresh
-	// signal.  In this case we do not set editing mode to true and
-	// do not grab focus to highlight all text in the entry.
-	if (refresh_pressed) {
-		signal_refresh.emit();
-		refresh_pressed = false;
-		return false;
-	}
-
-	// If the refresh button was not pressed, and we haven't previously
-	// grabbed focus, do so now.  The editing flag will be unset after
-	// focus leaves the entry, but until then, the text inside entry can
-	// be modified and clicked without forcably selecting all of the text
-	// again.
-	int start, end;
-	if (!editing && !get_selection_bounds(start, end)) {
-		grab_focus();
-	}
-	editing = true;
-	return Gtk::Entry::on_button_release_event(ev);
-}
-
-bool uri_entry::on_focus_out_event(GdkEventFocus *f) {
-	select_region(0, 0);
-	editing = false;
-	return Gtk::Entry::on_focus_out_event(f);
-}
-
-sigc::connection uri_entry::connect_refresh(std::function<void()> handler) {
-	return signal_refresh.connect(handler);
-}
-
-
-browser::browser(const std::vector<Glib::ustring>& uris) {
-	// Set navigation button images.  No gtkmm constructor wraps
-	// gtk_button_new_from_icon_name (due to a conflict with
-	// gtk_button_new_with_label) so this must be done in the browser
-	// constructor.
-	back.set_image_from_icon_name("go-previous");
-	fwd.set_image_from_icon_name("go-next");
-	new_tab.set_image_from_icon_name("add");
-
-	back.set_can_focus(false);
-	fwd.set_can_focus(false);
-	auto histnav_style = histnav.get_style_context();
+browser::browser(const std::vector<std::string>& uris) {
+	back->set_can_focus(false);
+	fwd->set_can_focus(false);
+	auto histnav_style = histnav->get_style_context();
 	histnav_style->add_class("raised");
 	histnav_style->add_class("linked");
-	histnav.add(back);
-	histnav.add(fwd);
-	navbar.pack_start(histnav);
+	histnav->add(*back);
+	histnav->add(*fwd);
+	navbar->pack_start(*histnav);
 
-	navbar.set_custom_title(nav_entry);
+	navbar->set_custom_title(*nav_entry);
 
-	new_tab.set_can_focus(false);
-	new_tab.set_relief(Gtk::RELIEF_NONE);
-	new_tab.show();
-	navbar.pack_end(new_tab);
+	new_tab->set_can_focus(false);
+	new_tab->set_relief(GTK_RELIEF_NONE);
+	new_tab->show();
+	navbar->pack_end(*new_tab);
 
-	navbar.set_show_close_button(true);
+	navbar->set_show_close_button(true);
 
 	auto num_uris = uris.size();
-	nb.set_show_tabs(num_uris > 1);
+	nb->set_show_tabs(num_uris > 1);
 
-	set_title("volo");
-	set_default_size(1024, 768);
-	set_titlebar(navbar);
-	nb.set_scrollable();
-	add(nb);
+	window->set_title("volo");
+	window->set_default_size(1024, 768);
+	window->set_titlebar(*navbar);
+	nb->set_scrollable(true);
+	window->add(*nb);
 
 	tabs.reserve(num_uris);
-	for (const auto& uri : uris) {
+	for (auto& uri : uris) {
 		open_new_tab(uri);
 	}
 
-	nav_entry.signal_uri_entered().connect([this] {
-		auto uri = nav_entry.get_text();
-		guess_uri(uri);
-		visable_tab.webview->load_uri(uri);
-		visable_tab.webview->grab_focus();
-	});
-	nb.signal_switch_page().connect([this](auto, guint page_num) {
-		switch_page(page_num);
-	});
-	nb.signal_page_added().connect([this](...) {
-		nb.set_show_tabs(true);
-	});
-	nb.signal_page_removed().connect([this](...) {
-		nb.set_show_tabs(nb.get_n_pages() > 1);
-	});
-	new_tab.signal_clicked().connect([this] {
-		auto n = open_new_tab("");
-		nb.set_current_page(n);
-	});
+	nav_entry->connect_activate(*this, on_nav_entry_activate);
+	nb->connect_switch_page(*this, on_notebook_switch_page);
+	nb->connect_page_added(*this, on_notebook_page_added);
+	nb->connect_page_removed(*this, on_notebook_page_removed);
+	new_tab->connect_clicked(*this, on_new_tab_clicked);
+	window->connect_key_press_event(*this, on_window_key_press_event);
+	window->connect_destroy(*this, on_window_destroy);
 
-	show_webview(0, tabs.front()->wv);
+	show_webview(0, *tabs.front().wv);
 
-	show_all_children();
+	window->show_all();
 }
 
-bool browser::on_key_press_event(GdkEventKey *ev) {
-	auto kv = ev->keyval;
+void browser::on_nav_entry_activate(gtk::entry<uri_entry<>::c_type>& entry) {
+	auto uri = nav_entry->get_text();
+	guess_uri(uri);
+	visable_tab.web_view->load_uri(uri);
+	visable_tab.web_view->grab_focus();
+}
 
-	if (ev->state == (GDK_CONTROL_MASK|GDK_SHIFT_MASK)) {
+void browser::on_notebook_switch_page(gtk::notebook<>& notebook, gtk::widget<>& page,
+	unsigned int page_num) {
+
+	switch_page(page_num);
+}
+
+void browser::on_notebook_page_added(gtk::notebook<>& notebook, gtk::widget<>& child,
+	unsigned int page_num) {
+
+	notebook.set_show_tabs(true);
+}
+
+void browser::on_notebook_page_removed(gtk::notebook<>& notebook, gtk::widget<>& child,
+	unsigned int page_num) {
+
+	notebook.set_show_tabs(notebook.get_n_pages() > 1);
+}
+
+void browser::on_new_tab_clicked(gtk::button<>& button) {
+	auto n = open_new_tab("");
+	nb->set_current_page(n);
+}
+
+bool browser::on_window_key_press_event(gtk::widget<gtk::window<>::c_type>& window,
+	GdkEventKey& ev) {
+
+	auto kv = ev.keyval;
+	auto state = ev.state;
+
+	if (state == (GDK_CONTROL_MASK|GDK_SHIFT_MASK)) {
 		if (kv == GDK_KEY_ISO_Left_Tab) {
-			auto n = nb.get_current_page();
+			auto n = nb->get_current_page();
 			if (n == 0) {
 				n = tabs.size() - 1;
 			} else {
 				--n;
 			}
 			switch_page(n);
-			nb.set_current_page(n);
+			nb->set_current_page(n);
 			return true;
 		}
-	} else if (ev->state == GDK_CONTROL_MASK) {
+	} else if (state == GDK_CONTROL_MASK) {
 		if (kv == GDK_KEY_Tab) {
-			auto n = nb.get_current_page();
+			auto n = nb->get_current_page();
 			if (++n == tabs.size()) {
 				n = 0;
 			}
 			switch_page(n);
-			nb.set_current_page(n);
+			nb->set_current_page(n);
 			return true;
 		}
 	}
 
-	if (Gtk::Widget::on_key_press_event(ev)) {
+	// Let the window begin handling the event.  This is done before some
+	// of the Ctrl keybindings below to allow various events which modify
+	// text fields (such as ^W to delete the preivous word) to be handled
+	// by the child, rather than closing the current tab.
+	if (window.key_press_event(ev)) {
 		return true;
 	}
 
-	if (ev->state == GDK_CONTROL_MASK) {
+	if (state == GDK_CONTROL_MASK) {
 		if (kv == GDK_KEY_l) {
-			nav_entry.grab_focus();
+			nav_entry->grab_focus();
 			return true;
 		} else if (kv == GDK_KEY_t) {
 			auto n = open_new_tab("");
-			nb.set_current_page(n);
+			nb->set_current_page(n);
 			return true;
 		} else if (kv == GDK_KEY_w) {
 			tabs.erase(tabs.begin() + visable_tab.tab_index);
 			if (tabs.size() == 0) {
-				destroy_();
+				window.destroy();
 			}
 			return true;
 		} else if (kv == GDK_KEY_q) {
 			tabs.clear();
-			destroy_();
+			window.destroy();
 			return true;
 		} else if (kv >= GDK_KEY_1 && kv <= GDK_KEY_8) {
 			auto n = kv - GDK_KEY_1;
 			if (tabs.size() > n) {
 				switch_page(n);
-				nb.set_current_page(n);
+				nb->set_current_page(n);
 			}
 			return true;
 		} else if (kv == GDK_KEY_9) {
 			auto n = tabs.size() - 1;
 			switch_page(n);
-			nb.set_current_page(n);
+			nb->set_current_page(n);
 			return true;
 		}
 	}
@@ -313,115 +180,151 @@ bool browser::on_key_press_event(GdkEventKey *ev) {
 	return false;
 }
 
-
-browser_tab::browser_tab(const Glib::ustring& uri) : wv{uri}, tab_title{"New tab"} {
-	tab_title.set_can_focus(false);
-	tab_title.set_hexpand(true);
-	tab_title.set_ellipsize(Pango::ELLIPSIZE_END);
-	tab_title.set_size_request(50, -1);
-
-	tab_close.set_image_from_icon_name("window-close");
+void browser::on_window_destroy(gtk::widget<gtk::window<>::c_type>& w) {
+	gtk_main_quit();
 }
 
+browser_tab::browser_tab(const std::string& uri) : wv{uri}, tab_title{"New tab"} {
+	tab_title->set_can_focus(false);
+	tab_title->set_hexpand(true);
+	tab_title->set_ellipsize(PANGO_ELLIPSIZE_END);
+	tab_title->set_size_request(50, -1);
+}
 
-int browser::open_new_tab(const Glib::ustring& uri) {
-	tabs.emplace_back(std::make_unique<browser_tab>(uri));
-	const auto& tab = tabs.back();
-	auto& wv = tab->wv;
+void browser::on_web_view_notify_title(webkit::web_view<>& wv, GParamSpec& param_spec) {
+	auto title = wv.get_title();
+	if (visable_tab.web_view == &wv) {
+		window->set_title(title);
+		tabs[visable_tab.tab_index].tab_title->set_text(title);
+		return;
+	}
 
-	auto tab_content = make_managed<Gtk::Box>();
+	// If the notified webview is not the currently-shown tab, we must
+	// search for the correct tab title to modify.
+	for (auto& tab : tabs) {
+		if (tab.wv.get() == &wv) {
+			tab.tab_title->set_text(title);
+			break;
+		}
+	}
+}
+
+int browser::open_new_tab(const std::string& uri) {
+	tabs.emplace_back(uri);
+	auto& tab = tabs.back();
+	auto& wv = *tab.wv;
+
+	auto tab_content = gtk::box<>::handle<gtk::handles::unmanaged>{};
 	tab_content->set_can_focus(false);
-	tab_content->add(tab->tab_title);
-	tab_content->add(tab->tab_close);
+	tab_content->add(*tab.tab_title);
+	tab_content->add(*tab.tab_close);
 
 	wv.show_all();
 	tab_content->show_all();
-	const auto n = nb.append_page(wv, *tab_content);
-	nb.set_tab_reorderable(wv, true);
+	const auto n = nb->append_page(wv, *tab_content);
+	nb->set_tab_reorderable(wv, true);
 
-	tab->tab_close.signal_clicked().connect([this, &tab = *tab] {
-		// NOTE: This is very fast because it does not need to
-		// dereference every pointer in the tabs vector, but it
-		// relies on the browser_tab class never being moved.
-		// Currently this holds true because moving for this type
-		// is disable (no move constructors or assignment operators
-		// exists).
-		for (auto it = tabs.begin(), ite = tabs.end(); it != ite; ++it) {
-			// Compare using pointer equality.  We intentionally
-			// captured a reference to the browser_tab, and not the
-			// vector's unique_ptr<browser_tab>, so that we could
-			// take the address of the actual browser_tab object
-			// without the vector's unique_ptr having been zeroed
-			// after a move.
-			if (it->get() != &tab) {
-				continue;
-			}
-			tabs.erase(it);
-			break;
-		}
-		if (tabs.size() == 0) {
-			destroy_();
-		}
-	});
-	wv.connect_notify_title([this, &tab = *tab] {
-		// Update tab title and the window title (if this tab is
-		// currently visable) with the new page title.
-		auto& wv = tab.wv;
-		auto c_title = webkit_web_view_get_title(wv.gobj());
-		Glib::ustring title{c_title ? c_title : "(Untitled)"};
-		tab.tab_title.set_text(title);
-		if (visable_tab.webview == &wv) {
-			set_title(title);
-		}
-	});
+	tab.tab_close->connect_clicked(*this, on_tab_close_clicked);
+	wv.connect_notify_title(*this, on_web_view_notify_title);
 
 	return n;
 }
 
-void browser::show_webview(unsigned int page_num, web_view& wv) {
+void browser::show_window() {
+	window->show();
+}
+
+void browser::on_tab_close_clicked(gtk::button<>& tab_close) {
+	for (auto it = tabs.begin(), ite = tabs.end(); it != ite; ++it) {
+		// Compare using pointer equality.
+		if (it->tab_close->ptr() != &tab_close) {
+			continue;
+		}
+		auto removed_index = std::distance(tabs.begin(), it);
+		tabs.erase(it);
+
+		if (tabs.size() == 0) {
+			window->destroy();
+			break;
+		}
+
+		// If the removed tab had an index smaller than the visable tab,
+		// the visable tab index must be decremented.
+		auto prev_index = visable_tab.tab_index;
+		if (removed_index < prev_index) {
+			visable_tab.tab_index = prev_index - 1;
+		}
+
+		break;
+	}
+}
+
+void browser::on_back_button_clicked(gtk::button<>& back) {
+	visable_tab.web_view->go_back();
+}
+
+void browser::on_fwd_button_clicked(gtk::button<>& fwd) {
+	visable_tab.web_view->go_forward();
+}
+
+void browser::on_back_forward_list_changed(WebKitBackForwardList& bfl,
+	WebKitBackForwardListItem&, gpointer) {
+
+	if (visable_tab.bfl == &bfl) {
+		update_histnav(*visable_tab.web_view);
+	}
+}
+
+void browser::on_web_view_notify_uri(webkit::web_view<>& web_view, GParamSpec& param_spec) {
+	nav_entry->set_uri(web_view.get_uri());
+}
+
+static void on_nav_entry_refresh_clicked(uri_entry<> *entry, webkit::web_view<> *web_view) {
+	web_view->reload();
+	web_view->grab_focus();
+}
+
+void browser::on_notebook_page_reordered(gtk::notebook<>& notebook, gtk::widget<>& child,
+	unsigned int new_idx) {
+
+	// NOTE: This only works when reordering the current visable tab.
+	// However, this appears to be a safe assumption since, at least
+	// when using the mouse to drag and drop tabs (which is the only
+	// method we have of reordering them), the tab being reordered
+	// is always focused first.
+	auto old_idx = visable_tab.tab_index;
+	auto tmp = std::move(tabs[old_idx]);
+	if (old_idx < new_idx) {
+		// Moving the range [old_idx+1, new_idx+1) to [old_idx, new_idx).
+		std::move(tabs.begin()+old_idx+1, tabs.begin()+new_idx+1,
+			tabs.begin()+old_idx);
+	} else {
+		// Moving the range [new_idx, old_idx) to [new_idx+1, old_idx+1).
+		std::move_backward(tabs.begin()+new_idx, tabs.begin()+old_idx,
+			tabs.begin()+old_idx+1);
+	}
+	tabs[new_idx] = std::move(tmp);
+	visable_tab.tab_index = new_idx;
+}
+
+void browser::show_webview(unsigned int page_num, webkit::web_view<>& wv) {
 	visable_tab = {page_num, wv};
 
 	// Update navbar/titlebar with the current state of the webview being
 	// shown.
-	auto c_title = webkit_web_view_get_title(wv.gobj());
-	set_title(c_title ? c_title : "volo");
+	auto c_title = webkit_web_view_get_title(wv.ptr());
+	window->set_title(c_title ? c_title : "volo");
 	update_histnav(wv);
 	auto uri = wv.get_uri();
-	nav_entry.set_uri(uri);
+	nav_entry->set_uri(uri);
 
 	page_signals = { {
-		back.signal_clicked().connect([&wv] { wv.go_back(); }),
-		fwd.signal_clicked().connect([&wv] { wv.go_forward(); }),
-		wv.connect_back_forward_list_changed([this](WebKitBackForwardList *bfl) {
-			if (visable_tab.bfl == bfl) {
-				update_histnav(*visable_tab.webview);
-			}
-		}),
-		wv.connect_notify_uri([this, &wv] { nav_entry.set_uri(wv.get_uri()); }),
-		nav_entry.connect_refresh([&wv] {
-			wv.reload();
-			wv.grab_focus();
-		}),
-		nb.signal_page_reordered().connect([this](auto, guint new_idx) {
-			// NOTE: This only works when reordering the current visable tab.
-			// However, this appears to be a safe assumption since, at least
-			// when using the mouse to drag and drop tabs (which is the only
-			// method we have of reordering them), the tab being reordered
-			// is always focused first.
-			auto old_idx = visable_tab.tab_index;
-			auto tmp = std::move(tabs[old_idx]);
-			if (old_idx < new_idx) {
-				// Moving the range [old_idx+1, new_idx+1) to [old_idx, new_idx).
-				std::move(tabs.begin()+old_idx+1, tabs.begin()+new_idx+1,
-					tabs.begin()+old_idx);
-			} else {
-				// Moving the range [new_idx, old_idx) to [new_idx+1, old_idx+1).
-				std::move_backward(tabs.begin()+new_idx, tabs.begin()+old_idx,
-					tabs.begin()+old_idx+1);
-			}
-			tabs[new_idx] = std::move(tmp);
-			visable_tab.tab_index = new_idx;
-		}),
+		back->connect_clicked(*this, on_back_button_clicked),
+		fwd->connect_clicked(*this, on_fwd_button_clicked),
+		wv.connect_back_forward_list_changed(*this, on_back_forward_list_changed),
+		wv.connect_notify_uri(*this, on_web_view_notify_uri),
+		nav_entry->connect_refresh_clicked(wv, ::on_nav_entry_refresh_clicked),
+		nb->connect_page_reordered(*this, on_notebook_page_reordered),
 	} };
 
 	// Grab URI entry focus if the shown tab is blank.
@@ -429,35 +332,35 @@ void browser::show_webview(unsigned int page_num, web_view& wv) {
 	// TODO: If this webview is being shown by switching notebook tabs,
 	// grabbing the entry focus has no effect.
 	if (uri == "") {
-		nav_entry.grab_focus();
+		nav_entry->grab_focus();
 	} else {
 		wv.grab_focus();
 	}
 }
 
-void browser::update_histnav(web_view& wv) {
-	const auto p = wv.gobj();
-	back.set_sensitive(webkit_web_view_can_go_back(p));
-	fwd.set_sensitive(webkit_web_view_can_go_forward(p));
+void browser::update_histnav(webkit::web_view<>& wv) {
+	back->set_sensitive(wv.can_go_back());
+	fwd->set_sensitive(wv.can_go_forward());
 }
 
-void browser::switch_page(unsigned int page_num) noexcept {
+void browser::switch_page(unsigned int page_num) {
 	// Disconnect previous web_view's signals before showing and connecting
 	// the new web_view.
 	for (auto& sig : page_signals) {
 		sig.disconnect();
 	}
 
-	show_webview(page_num, tabs.at(page_num)->wv);
+	show_webview(page_num, *tabs.at(page_num).wv);
 }
 
 
 int main(int argc, char **argv) {
-	const auto app = Gtk::Application::create(argc, argv, "org.jrick.volo");
+	gtk_init(&argc, &argv);
 
-	auto wc = web_context::get_default();
-	wc.set_process_model(WEBKIT_PROCESS_MODEL_MULTIPLE_SECONDARY_PROCESSES);
+	auto web_cxt = webkit::web_context<>::get_default();
+	web_cxt->set_process_model(WEBKIT_PROCESS_MODEL_MULTIPLE_SECONDARY_PROCESSES);
 
-	browser b;
-	return app->run(b);
+	auto b = browser{};
+	b.show_window();
+	gtk_main();
 }

@@ -6,11 +6,11 @@ NOMAN=
 
 #DEBUG= -g
 
-SRCS= volo.cpp volo.h
+SRCS= gtk.h webkit.h uri_entry.cpp uri_entry.h volo.cpp volo.h
 CXXFLAGS+= -Wall -std=c++1y -I. -I${.CURDIR}
-CXXFLAGS+= -Wno-overloaded-virtual
+CXXFLAGS+= -fno-rtti -fno-exceptions
 LDADD= -lutil
-LIBS+= gtkmm-3.0 webkit2gtk-3.0
+LIBS+= gtk+-3.0 webkit2gtk-3.0
 LIBS_CXXFLAGS!= pkg-config --cflags $(LIBS)
 LIBS_LDFLAGS!= pkg-config --libs $(LIBS)
 CXXFLAGS+= $(LIBS_CXXFLAGS)

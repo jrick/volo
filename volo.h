@@ -6,157 +6,26 @@
 #define _VOLO_H
 
 #include <array>
+#include <string>
 #include <vector>
-#include <utility>
 
-#include <gtkmm.h>
-#include <webkit2/webkit2.h>
-
+#include <gtk.h>
+#include <webkit.h>
+#include <uri_entry.h>
 
 namespace volo {
-
-// make_managed creates a dynamically allocated gtkmm widget whose
-// destruction will be delegated to the container it is added to.
-//
-// This is a replacement for the gtkmm idiom:
-//
-//   Gtk::manage(new Gtk::Widget)
-//
-// to create a managed Gtk::Widget pointer and avoids an explicit use of
-// `new' in implemenation code.  The returned object must still be added
-// to a container, or the allocation will leak.
-template<typename T, typename... Args>
-T* make_managed(Args&&... args) {
-	return Gtk::manage(new T{std::forward<Args>(args)...});
-}
-
-// web_context wraps the default WebKitWebContext.  Non-default contexts may be
-// representable in later versions of WebKitGTK, but as of 2.6, it appears that
-// only the default context ever exists.
-//
-// Additional details regarding the methods wrapped by this class can be
-// found at: http://webkitgtk.org/reference/webkit2gtk/stable/WebKitWebContext.html
-class web_context {
-private:
-	// Underlying web context.
-	WebKitWebContext * const wc;
-
-public:
-	// get_default returns a web_context wrapping the default web context.
-	// This is the only way to create a web_context, since other contexts
-	// other than the default cannot be constructed.
-	static web_context get_default();
-
-	// set_process_model modifies the process model for a web context.
-	// By default, a web context will use a single process to manage
-	// all WebViews.
-	//
-	// It is unsafe to change the process model after WebViews have been
-	// created.
-	void set_process_model(WebKitProcessModel);
-
-protected:
-	// Constructor to wrap the default web context.  This is not public
-	// since it may be possible to construct non-default web contexts
-	// in the future.
-	web_context(WebKitWebContext *wc) : wc{wc} {}
-};
-
-
-// web_view is a thin wrapper around a WebKitWebView, deriving from a gtkmm
-// widget so it may be used in combination with other GTK widgets.
-//
-// Additional details regarding the methods wrapped by this class can be
-// found at: http://webkitgtk.org/reference/webkit2gtk/stable/WebKitWebView.html
-class web_view : public Gtk::Widget {
-private:
-	// Signals.
-	sigc::signal<void, WebKitLoadEvent> signal_load_changed;
-	sigc::signal<void, WebKitBackForwardList *> signal_back_forward_list_changed;
-	sigc::signal<void> signal_notify_title;
-	sigc::signal<void> signal_notify_uri;
-
-public:
-	// Constructors to allocate and initialize a new WebKitWebView.  The
-	// default constructor will load the blank about page, but a string
-	// any other URI may be specified to begin loading the resource as the
-	// web_view is created.
-	web_view() : web_view{reinterpret_cast<WebKitWebView *>(webkit_web_view_new())} {}
-	web_view(const Glib::ustring&);
-
-	// load_uri begins the loading the URI described by uri in the web_view.
-	void load_uri(const Glib::ustring&);
-
-	// get_uri returns the URI of the web_view.
-	Glib::ustring get_uri();
-
-	// reload reloads the current web_view's URI.
-	void reload();
-
-	// go_back loads the previous history item.
-	void go_back();
-
-	// go_forward loads the next history item.
-	void go_forward();
-
-	// Signal connections.
-	sigc::connection connect_load_changed(std::function<void(WebKitLoadEvent)>);
-	sigc::connection connect_back_forward_list_changed(std::function<void(WebKitBackForwardList *)>);
-	sigc::connection connect_notify_title(std::function<void()>);
-	sigc::connection connect_notify_uri(std::function<void()>);
-
-protected:
-	// Constructor to create a web_view from a C pointer.
-	web_view(WebKitWebView *wv);
-
-public:
-	// Accessor methods for the underlying GObject.
-	WebKitWebView * gobj() { return reinterpret_cast<WebKitWebView *>(gobject_); }
-	const WebKitWebView * gobj() const { return reinterpret_cast<WebKitWebView *>(gobject_); }
-};
-
-
-// uri_entry represents the URI entry box that is used as the browser
-// window's custom title.
-class uri_entry : public Gtk::Entry {
-private:
-	bool editing{false};
-	bool refresh_pressed{false};
-
-	// Signals
-	sigc::signal<void> signal_refresh;
-
-public:
-	// Default constructor.  No surprises here.
-	uri_entry();
-
-	// Setter for the text in the URI entry.  This only modifies the
-	// text if the entry is not receiving input events (that is, when
-	// it is not the grab widget).
-	void set_uri(const Glib::ustring& uri);
-
-	// signal_uri_entered returns a connectable signal which fires
-	// whenever the URI is entered by the user using the entry.
-	Glib::SignalProxy0<void> signal_uri_entered();
-
-	// Signal connections.
-	sigc::connection connect_refresh(std::function<void()>);
-
-protected:
-	bool on_button_release_event(GdkEventButton *) override;
-	bool on_focus_out_event(GdkEventFocus *) override;
-};
-
 
 // browser_tab represents the widgets added to the browser's notebook.  Note
 // that there is an additional box which holds the tab's title and close button
 // that is not owned by this struct.
 struct browser_tab {
-	web_view wv;
-	Gtk::Label tab_title;
-	Gtk::Button tab_close;
+	webkit::web_view<>::handle<> wv;
+	gtk::label<>::handle<> tab_title;
+	gtk::button<>::handle<> tab_close{"window-close", GTK_ICON_SIZE_BUTTON};
 
-	browser_tab(const Glib::ustring&);
+	browser_tab(const std::string&);
+	browser_tab(browser_tab&&) = default;
+	browser_tab& operator=(browser_tab&&) = default;
 };
 
 
@@ -168,26 +37,26 @@ struct browser_tab {
 //
 // A browser will show no less than one tab at all times.  Removing the last
 // tab will close the browser.
-class browser : public Gtk::Window {
+class browser {
 private:
-	// A vector of browser_tab pointers is used instead of a vector of
-	// tabs since the browser_tab structs cannot be moved.  This appears
-	// to be a limitation with gtkmm.
-	std::vector<std::unique_ptr<browser_tab>> tabs;
-	Gtk::HeaderBar navbar;
-	Gtk::Box histnav;
-	Gtk::Button back, fwd, new_tab;
-	uri_entry nav_entry;
-	Gtk::Notebook nb;
+	std::vector<browser_tab> tabs;
+	gtk::window<>::handle<> window;
+	gtk::header_bar<>::handle<> navbar;
+	gtk::box<>::handle<> histnav;
+	gtk::button<>::handle<> back{"go-previous", GTK_ICON_SIZE_BUTTON};
+	gtk::button<>::handle<> fwd{"go-next", GTK_ICON_SIZE_BUTTON};
+	gtk::button<>::handle<> new_tab{"add", GTK_ICON_SIZE_BUTTON};
+	volo::uri_entry<>::handle<> nav_entry;
+	gtk::notebook<>::handle<> nb;
 	// Details about the currently shown page.
-	std::array<sigc::connection, 6> page_signals;
+	std::array<gtk::connection, 6> page_signals;
 	struct visable_tab {
 		unsigned int tab_index{0};
-		web_view *webview{nullptr};
+		webkit::web_view<> *web_view{nullptr};
 		WebKitBackForwardList *bfl{nullptr};
 		visable_tab() {}
-		visable_tab(unsigned int n, web_view& wv) : tab_index{n}, webview{&wv},
-			bfl{webkit_web_view_get_back_forward_list(wv.gobj())} {}
+		visable_tab(unsigned int n, webkit::web_view<>& wv) :
+			tab_index{n}, web_view{&wv}, bfl{wv.get_back_forward_list()} {}
 	} visable_tab;
 
 public:
@@ -195,21 +64,91 @@ public:
 	// URIs (a "session") to open may be specified, while the default
 	// constructor will open a single tab to a single blank page.
 	browser() : browser{{""}} {}
-	browser(const std::vector<Glib::ustring>&);
+	browser(const std::vector<std::string>&);
 
 	// open_new_tab creates a new tab, loading the specified resource, and
 	// adds it to the browser, appending the page to the end of the
 	// notebook.  The notebook index is returned and may be used to switch
 	// view to the newly opened tab.
-	int open_new_tab(const Glib::ustring&);
+	int open_new_tab(const std::string&);
+
+	// show_window calls the show method of the browser's window widget.
+	void show_window();
 
 private:
-	void show_webview(unsigned int, web_view&);
-	void switch_page(unsigned int) noexcept;
-	void update_histnav(web_view&);
+	void show_webview(unsigned int, webkit::web_view<>&);
+	void switch_page(unsigned int);
+	void update_histnav(webkit::web_view<>&);
 
-protected:
-	bool on_key_press_event(GdkEventKey *) override;
+	// Slots (member functions)
+	void on_nav_entry_activate(gtk::entry<uri_entry<>::c_type>&);
+	void on_notebook_switch_page(gtk::notebook<>&, gtk::widget<>&, unsigned int);
+	void on_notebook_page_added(gtk::notebook<>&, gtk::widget<>&, unsigned int);
+	void on_notebook_page_removed(gtk::notebook<>&, gtk::widget<>&, unsigned int);
+	void on_notebook_page_reordered(gtk::notebook<>&, gtk::widget<>&, unsigned int);
+	void on_new_tab_clicked(gtk::button<>&);
+	bool on_window_key_press_event(gtk::widget<gtk::window<>::c_type>&, GdkEventKey&);
+	void on_window_destroy(gtk::widget<gtk::window<>::c_type>&);
+	void on_tab_close_clicked(gtk::button<>&);
+	void on_back_button_clicked(gtk::button<>&);
+	void on_fwd_button_clicked(gtk::button<>&);
+	void on_back_forward_list_changed(WebKitBackForwardList&, WebKitBackForwardListItem&,
+		gpointer);
+	void on_web_view_notify_uri(webkit::web_view<>&, GParamSpec&);
+	void on_web_view_notify_title(webkit::web_view<>&, GParamSpec&);
+
+	// Slots (static functions)
+	static void on_nav_entry_activate(gtk::entry<uri_entry<>::c_type> *entry,
+		browser *b) {
+		return b->on_nav_entry_activate(*entry);
+	}
+	static void on_notebook_switch_page(gtk::notebook<> *notebook, gtk::widget<> *widget,
+		unsigned int page_num, browser *b) {
+		b->on_notebook_switch_page(*notebook, *widget, page_num);
+	}
+	static void on_notebook_page_added(gtk::notebook<> *notebook, gtk::widget<> *widget,
+		unsigned int page_num, browser *b) {
+		b->on_notebook_page_added(*notebook, *widget, page_num);
+	}
+	static void on_notebook_page_removed(gtk::notebook<> *notebook, gtk::widget<> *widget,
+		unsigned int page_num, browser *b) {
+		b->on_notebook_page_removed(*notebook, *widget, page_num);
+	}
+	static void on_notebook_page_reordered(gtk::notebook<> *notebook, gtk::widget<> *child,
+		unsigned int page_num, browser *b) {
+		b->on_notebook_page_reordered(*notebook, *child, page_num);
+	}
+	static void on_new_tab_clicked(gtk::button<> *button, browser *b) {
+		b->on_new_tab_clicked(*button);
+	}
+	static bool on_window_key_press_event(gtk::widget<gtk::window<>::c_type> *w,
+		GdkEventKey *ev, browser *b) {
+		return b->on_window_key_press_event(*w, *ev);
+	}
+	static void on_window_destroy(gtk::widget<gtk::window<>::c_type> *w, browser *b) {
+		return b->on_window_destroy(*w);
+	}
+	static void on_tab_close_clicked(gtk::button<> *button, browser *b) {
+		b->on_tab_close_clicked(*button);
+	}
+	static void on_back_button_clicked(gtk::button<> *button, browser *b) {
+		b->on_back_button_clicked(*button);
+	}
+	static void on_fwd_button_clicked(gtk::button<> *button, browser *b) {
+		b->on_fwd_button_clicked(*button);
+	}
+	static void on_back_forward_list_changed(WebKitBackForwardList *button,
+		WebKitBackForwardListItem *item_added, gpointer items_removed, browser *b) {
+		b->on_back_forward_list_changed(*button, *item_added, items_removed);
+	}
+	static void on_web_view_notify_uri(webkit::web_view<> *web_view,
+		GParamSpec *param_spec, browser *b) {
+		b->on_web_view_notify_uri(*web_view, *param_spec);
+	}
+	static void on_web_view_notify_title(webkit::web_view<> *web_view,
+		GParamSpec *param_spec, browser *b) {
+		b->on_web_view_notify_title(*web_view, *param_spec);
+	}
 };
 
 } // namespace volo
