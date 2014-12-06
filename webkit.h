@@ -21,9 +21,6 @@ struct web_context : gtk::gobject<T> {
 	// Non-default web_contexts may be representable in later versions
 	// of WebKitGTK, but as of 2.6, it appears that only the default context
 	// ever exists.
-	//
-	// Because user-created web_contexts cannot be created, there is no need
-	// for a handle type.
 	static auto get_default() {
 		return reinterpret_cast<web_context *>(webkit_web_context_get_default());
 	}
