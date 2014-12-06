@@ -16,7 +16,6 @@ namespace webkit {
 template <class T = WebKitWebContext>
 struct web_context : gtk::gobject<T> {
 	using c_type = WebKitWebContext;
-	using impl_type = web_context<c_type>;
 
 	// get_default returns the wrapped default WebKitWebContext.
 	// Non-default web_contexts may be representable in later versions
@@ -26,9 +25,7 @@ struct web_context : gtk::gobject<T> {
 	// Because user-created web_contexts cannot be created, there is no need
 	// for a handle type.
 	static auto get_default() {
-		return reinterpret_cast<impl_type *>(
-			webkit_web_context_get_default()
-		);
+		return reinterpret_cast<web_context *>(webkit_web_context_get_default());
 	}
 
 	// set_process_model modifies the process model for a web context.
@@ -47,22 +44,19 @@ struct web_context : gtk::gobject<T> {
 template <class T = WebKitWebView>
 struct web_view : gtk::widget<T> {
 	using c_type = WebKitWebView;
-	using impl_type = web_view<c_type>;
 
-	template <template <typename> class Ownership = gtk::handles::unique>
-	struct handle : gtk::handles::handle<impl_type, Ownership> {
-		handle() :
-		gtk::handles::handle<impl_type, Ownership>{reinterpret_cast<impl_type *>(
-			webkit_web_view_new()
-		)} {}
+	static auto create() {
+		return reinterpret_cast<web_view *>(webkit_web_view_new());
+	}
 
-		handle(const std::string& uri) : handle{} {
-			this->get()->load_uri(uri);
-		}
-		handle(const char *uri) : handle{} {
-			this->get()->load_uri(uri);
-		}
-	};
+	static auto create(const char *uri) {
+		auto ptr = create();
+		ptr->load_uri(uri);
+		return ptr;
+	}
+	static auto create(const std::string& uri) {
+		return create(uri.c_str());
+	}
 
 	// load_uri begins the loading the URI described by uri in the web_view.
 	void load_uri(const std::string& uri) {

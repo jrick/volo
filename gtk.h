@@ -12,75 +12,22 @@
 
 namespace gtk {
 
-namespace handles {
-
-template<class T, template <typename> class Ownership>
-class handle {
-protected:
-	typename T::impl_type *opaque;
-
-public:
-	handle(typename T::impl_type *impl) : opaque{impl} {
-		static_cast<Ownership<T> *>(this)->own();
-	}
-	~handle() {
-		if (opaque != nullptr) {
-			static_cast<Ownership<T> *>(this)->unown();
-		}
-	}
-
-	// Non-copyable, movable.
-	handle(const handle&) = delete;
-	handle& operator=(const handle&) = delete;
-	handle(handle&& other) {
-		opaque = other.opaque;
-		other.opaque = nullptr;
-	}
-	handle& operator=(handle&& other) {
-		if (opaque != nullptr) {
-			static_cast<Ownership<T> *>(this)->unown();
-		}
-		opaque = other.opaque;
-		other.opaque = nullptr;
-		return *this;
-	}
-
-	auto& operator*() { return *opaque; }
-	const auto& operator*() const { return *opaque; }
-	auto get() { return opaque; }
-	const auto get() const { return opaque; }
-	auto operator->() { return get(); }
-	const auto operator->() const { return get(); }
-};
-
 template <class T>
-struct ref_counted : handle<T, ref_counted> {
-	void own() {
-		this->opaque->ref_sink();
-	}
-	void unown() {
-		this->opaque->unref();
+struct destroy_delete {
+	void operator()(T *ptr) const {
+		ptr->destroy();
 	}
 };
 
-template <class T>
-struct unmanaged : handle<T, unmanaged> {
-	void own() {}
-	void unown() {}
-};
+template <class T, class Deleter = destroy_delete<T>>
+using unique_ptr = std::unique_ptr<T, Deleter>;
 
-template <class T>
-struct unique : handle<T, unique> {
-	void own() {
-		this->opaque->ref_sink();
-	}
-	void unown() {
-		this->opaque->destroy();
-	}
-};
-
-} // namespace handles
-
+template <class T, class ...Args>
+unique_ptr<T> make_unique(Args ...args) {
+	auto ptr = T::create(std::forward<Args>(args)...);
+	ptr->ref_sink();
+	return unique_ptr<T>(ptr);
+}
 
 struct connection {
 	GObject *object;
@@ -97,9 +44,10 @@ struct gobject : T {
 
 	// This struct and derived structs are only used for the method
 	// interface (by reinterpret_cast'ing T pointers to gobject<T>
-	// pointers).  They cannot be constructed, copied, or moved.  See the
-	// handles namespace for RAII handles for pointers to wrapped objects
-	// and widgets.
+	// pointers).  They cannot be constructed, copied, or moved.  See
+	// the make_unique function to construct an object that is destroyed
+	// after going out of scope, or use the static create member function
+	// to return a raw pointer with a floating reference.
 	gobject() = delete;
 	~gobject() = delete;
 	gobject(const gobject&) = delete;
@@ -255,15 +203,10 @@ struct bin : container<T> {};
 template <class T = GtkWindow>
 struct window : bin<T> {
 	using c_type = GtkWindow;
-	using impl_type = window<c_type>;
 
-	template <template <typename> class Ownership = handles::unique>
-	struct handle : handles::handle<impl_type, Ownership> {
-		handle(GtkWindowType type = GTK_WINDOW_TOPLEVEL) :
-		handles::handle<impl_type, Ownership>{reinterpret_cast<impl_type *>(
-			gtk_window_new(type)
-		)} {}
-	};
+	static auto create(GtkWindowType type = GTK_WINDOW_TOPLEVEL) {
+		return reinterpret_cast<window *>(gtk_window_new(type));
+	}
 
 	void set_title(const std::string& title) {
 		set_title(title.c_str());
@@ -287,7 +230,6 @@ struct window : bin<T> {
 template <class T = GtkEditable>
 struct editable : gobject<T> {
 	using c_type = GtkEditable;
-	using impl_type = editable<c_type>;
 
 	bool get_selection_bounds(int& start, int& end) {
 		return gtk_editable_get_selection_bounds(ptr(), &start, &end);
@@ -303,15 +245,10 @@ struct editable : gobject<T> {
 template <class T = GtkEntry>
 struct entry : editable<widget<T>> {
 	using c_type = GtkEntry;
-	using impl_type = entry<c_type>;
 
-	template <template <typename> class Ownership = handles::unique>
-	struct handle : handles::handle<impl_type, Ownership> {
-		handle() :
-		handles::handle<impl_type, Ownership>{reinterpret_cast<impl_type *>(
-			gtk_entry_new()
-		)} {}
-	};
+	static auto create() {
+		return reinterpret_cast<entry *>(gtk_entry_new());
+	}
 
 	const char * get_text() {
 		return gtk_entry_get_text(ptr());
@@ -353,19 +290,13 @@ struct misc : widget<T> {};
 template <class T = GtkLabel>
 struct label : misc<T> {
 	using c_type = GtkLabel;
-	using impl_type = label<c_type>;
 
-	template <template <typename> class Ownership = handles::unique>
-	struct handle : handles::handle<impl_type, Ownership> {
-		handle(const std::string& str = "") :
-		handles::handle<impl_type, Ownership>{reinterpret_cast<impl_type *>(
-			gtk_label_new(str.c_str())
-		)} {}
-		handle(const char *str = "") :
-		handles::handle<impl_type, Ownership>{reinterpret_cast<impl_type *>(
-			gtk_label_new(str)
-		)} {}
-	};
+	static auto create(const char *str = "") {
+		return reinterpret_cast<label *>(gtk_label_new(str));
+	}
+	static auto create(const std::string& str) {
+		return create(str.c_str());
+	}
 
 	void set_text(const std::string& text) {
 		set_text(text.c_str());
@@ -384,33 +315,26 @@ struct label : misc<T> {
 template <class T = GtkButton>
 struct button : bin<T> {
 	using c_type = GtkButton;
-	using impl_type = button<c_type>;
 
-	template <template <typename> class Ownership = handles::unique>
-	struct handle : handles::handle<impl_type, Ownership> {
-		handle() :
-		handles::handle<impl_type, Ownership>{reinterpret_cast<impl_type *>(
-			gtk_button_new()
-		)} {}
+	static auto create() {
+		return reinterpret_cast<button *>(gtk_button_new());
+	}
 
-		handle(const std::string& label = "") :
-		handles::handle<impl_type, Ownership>{reinterpret_cast<impl_type *>(
-			gtk_button_new_with_label(label.c_str())
-		)} {}
-		handle(const char *label = "") :
-		handles::handle<impl_type, Ownership>{reinterpret_cast<impl_type *>(
-			gtk_button_new_with_label(label)
-		)} {}
+	static auto create(const char *label) {
+		return reinterpret_cast<button *>(gtk_button_new_with_label(label));
+	}
+	static auto create(const std::string& label) {
+		return create(label.c_str());
+	}
 
-		handle(const std::string& icon_name, GtkIconSize size) :
-		handles::handle<impl_type, Ownership>{reinterpret_cast<impl_type *>(
-			gtk_button_new_from_icon_name(icon_name.c_str(), size)
-		)} {}
-		handle(const char *icon_name, GtkIconSize size) :
-		handles::handle<impl_type, Ownership>{reinterpret_cast<impl_type *>(
+	static auto create(const char *icon_name, GtkIconSize size) {
+		return reinterpret_cast<button *>(
 			gtk_button_new_from_icon_name(icon_name, size)
-		)} {}
-	};
+		);
+	}
+	static auto create(const std::string& icon_name, GtkIconSize size) {
+		return create(icon_name.c_str(), size);
+	}
 
 	void set_relief(GtkReliefStyle relief) {
 		gtk_button_set_relief(ptr(), relief);
@@ -431,15 +355,10 @@ struct button : bin<T> {
 template <class T = GtkBox>
 struct box : container<T> {
 	using c_type = GtkBox;
-	using impl_type = box<c_type>;
 
-	template <template <typename> class Ownership = handles::unique>
-	struct handle : handles::handle<impl_type, Ownership> {
-		handle(GtkOrientation orientation = GTK_ORIENTATION_HORIZONTAL, int spacing = 0) :
-		handles::handle<impl_type, Ownership>{reinterpret_cast<impl_type *>(
-			gtk_box_new(orientation, spacing)
-		)} {}
-	};
+	static auto create(GtkOrientation orientation = GTK_ORIENTATION_HORIZONTAL, int spacing = 0) {
+		return reinterpret_cast<box *>(gtk_box_new(orientation, spacing));
+	}
 
 	template <class U>
 	void pack_start(widget<U>& child, bool expand = true, bool fill = true,
@@ -461,15 +380,10 @@ struct box : container<T> {
 template <class T = GtkNotebook>
 struct notebook : container<T> {
 	using c_type = GtkNotebook;
-	using impl_type = notebook<c_type>;
 
-	template <template <typename> class Ownership = handles::unique>
-	struct handle : handles::handle<impl_type, Ownership> {
-		handle() :
-		handles::handle<impl_type, Ownership>{reinterpret_cast<impl_type *>(
-			gtk_notebook_new()
-		)} {}
-	};
+	static auto create() {
+		return reinterpret_cast<notebook *>(gtk_notebook_new());
+	}
 
 	template <class U0, class U1>
 	int append_page(widget<U0>& child, widget<U1>& tab_label) {
@@ -537,15 +451,10 @@ struct notebook : container<T> {
 template <class T = GtkHeaderBar>
 struct header_bar : container<T> {
 	using c_type = GtkHeaderBar;
-	using impl_type = header_bar<c_type>;
 
-	template <template <typename> class Ownership = handles::unique>
-	struct handle : handles::handle<impl_type, Ownership> {
-		handle() :
-		handles::handle<impl_type, Ownership>{reinterpret_cast<impl_type *>(
-			gtk_header_bar_new()
-		)} {}
-	};
+	static auto create() {
+		return reinterpret_cast<header_bar<> *>(gtk_header_bar_new());
+	}
 
 	template <class U>
 	void set_custom_title(widget<U>& title_widget) {

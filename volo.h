@@ -18,13 +18,13 @@ namespace volo {
 // that there is an additional box which holds the tab's title and close button
 // that is not owned by this struct.
 struct browser_tab {
-	webkit::web_view<>::handle<> wv;
-	gtk::label<>::handle<> tab_title;
-	gtk::button<>::handle<> tab_close{"window-close", GTK_ICON_SIZE_BUTTON};
+	gtk::unique_ptr<webkit::web_view<>> wv;
+	gtk::unique_ptr<gtk::label<>> tab_title{gtk::make_unique<gtk::label<>>()};
+	gtk::unique_ptr<gtk::button<>> tab_close{
+		gtk::make_unique<gtk::button<>>("window-close", GTK_ICON_SIZE_BUTTON)
+	};
 
 	browser_tab(const char *);
-	browser_tab(browser_tab&&) = default;
-	browser_tab& operator=(browser_tab&&) = default;
 };
 
 
@@ -39,14 +39,20 @@ struct browser_tab {
 class browser {
 private:
 	std::vector<browser_tab> tabs;
-	gtk::window<>::handle<> window;
-	gtk::header_bar<>::handle<> navbar;
-	gtk::box<>::handle<> histnav;
-	gtk::button<>::handle<> back{"go-previous", GTK_ICON_SIZE_BUTTON};
-	gtk::button<>::handle<> fwd{"go-next", GTK_ICON_SIZE_BUTTON};
-	gtk::button<>::handle<> new_tab{"add", GTK_ICON_SIZE_BUTTON};
-	volo::uri_entry<>::handle<> nav_entry;
-	gtk::notebook<>::handle<> nb;
+	gtk::unique_ptr<gtk::window<>> window{gtk::make_unique<gtk::window<>>()};
+	gtk::unique_ptr<gtk::header_bar<>> navbar{gtk::make_unique<gtk::header_bar<>>()};
+	gtk::unique_ptr<gtk::box<>> histnav{gtk::make_unique<gtk::box<>>()};
+	gtk::unique_ptr<gtk::button<>> back{
+		gtk::make_unique<gtk::button<>>("go-previous", GTK_ICON_SIZE_BUTTON)
+	};
+	gtk::unique_ptr<gtk::button<>> fwd{
+		gtk::make_unique<gtk::button<>>("go-next", GTK_ICON_SIZE_BUTTON)
+	};
+	gtk::unique_ptr<gtk::button<>> new_tab{
+		gtk::make_unique<gtk::button<>>("add", GTK_ICON_SIZE_BUTTON)
+	};
+	gtk::unique_ptr<uri_entry<>> nav_entry{gtk::make_unique<uri_entry<>>()};
+	gtk::unique_ptr<gtk::notebook<>> nb{gtk::make_unique<gtk::notebook<>>()};
 	// Details about the currently shown page.
 	std::array<gtk::connection, 6> page_signals;
 	struct visable_tab {

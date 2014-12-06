@@ -184,7 +184,10 @@ void browser::on_window_destroy(gtk::widget<gtk::window<>::c_type>& w) {
 	gtk_main_quit();
 }
 
-browser_tab::browser_tab(const char *uri) : wv{uri}, tab_title{"New tab"} {
+browser_tab::browser_tab(const char *uri) :
+	wv{gtk::make_unique<webkit::web_view<>>(uri)},
+	tab_title{gtk::make_unique<gtk::label<>>("New tab")} {
+
 	tab_title->set_can_focus(false);
 	tab_title->set_hexpand(true);
 	tab_title->set_ellipsize(PANGO_ELLIPSIZE_END);
@@ -214,7 +217,7 @@ int browser::open_new_tab(const char *uri) {
 	auto& tab = tabs.back();
 	auto& wv = *tab.wv;
 
-	auto tab_content = gtk::box<>::handle<gtk::handles::unmanaged>{};
+	auto tab_content = gtk::box<>::create();
 	tab_content->set_can_focus(false);
 	tab_content->add(*tab.tab_title);
 	tab_content->add(*tab.tab_close);

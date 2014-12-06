@@ -64,15 +64,11 @@ namespace volo {
 template <class T = VoloURIEntry>
 struct uri_entry : gtk::entry<T> {
 	using c_type = VoloURIEntry;
-	using impl_type = uri_entry<c_type>;
 
-	template <template <typename> class Ownership = gtk::handles::unique>
-	struct handle : gtk::handles::handle<impl_type, Ownership> {
-		handle() :
-		gtk::handles::handle<impl_type, Ownership>{reinterpret_cast<impl_type *>(
-			volo_uri_entry_new()
-		)} {}
-	};
+	static auto create() {
+		return reinterpret_cast<uri_entry *>(volo_uri_entry_new());
+	}
+
 	// Signals.
 
 	template <class U>
