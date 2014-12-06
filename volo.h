@@ -6,7 +6,6 @@
 #define _VOLO_H
 
 #include <array>
-#include <string>
 #include <vector>
 
 #include <gtk.h>

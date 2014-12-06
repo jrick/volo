@@ -3,6 +3,7 @@
 // license that can be found in the LICENSE file.
 
 #include <algorithm>
+#include <string>
 
 #include <volo.h>
 #include <gdk/gdkkeysyms.h>
