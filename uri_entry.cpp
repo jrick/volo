@@ -58,6 +58,10 @@ GtkWidget * volo_uri_entry_new() {
 }
 
 void VoloURIEntry::set_uri(const std::string& uri) {
+	return set_uri(uri.c_str());
+}
+
+void VoloURIEntry::set_uri(const char *uri) {
 	if (!has_focus()) {
 		set_text(uri);
 	}

@@ -133,7 +133,10 @@ struct style_context : gobject<T> {
 	using c_type = GtkStyleContext;
 
 	void add_class(const std::string& class_name) {
-		gtk_style_context_add_class(ptr(), class_name.c_str());
+		add_class(ptr(), class_name.c_str());
+	}
+	void add_class(const char *class_name) {
+		gtk_style_context_add_class(ptr(), class_name);
 	}
 
 	c_type * ptr() { return reinterpret_cast<c_type *>(this); }
@@ -263,7 +266,10 @@ struct window : bin<T> {
 	};
 
 	void set_title(const std::string& title) {
-		gtk_window_set_title(ptr(), title.c_str());
+		set_title(title.c_str());
+	}
+	void set_title(const char *title) {
+		gtk_window_set_title(ptr(), title);
 	}
 
 	void set_default_size(int width, int height) {
@@ -307,8 +313,7 @@ struct entry : editable<widget<T>> {
 		)} {}
 	};
 
-	// TODO: use std::experimental::string_view to avoid a copy?
-	std::string get_text() {
+	const char * get_text() {
 		return gtk_entry_get_text(ptr());
 	}
 
@@ -317,11 +322,17 @@ struct entry : editable<widget<T>> {
 	}
 
 	void set_icon_from_icon_name(GtkEntryIconPosition pos, const std::string& name) {
-		gtk_entry_set_icon_from_icon_name(ptr(), pos, name.c_str());
+		set_icon_from_icon_name(pos, name.c_str());
+	}
+	void set_icon_from_icon_name(GtkEntryIconPosition pos, const char *name) {
+		gtk_entry_set_icon_from_icon_name(ptr(), pos, name);
 	}
 
 	void set_text(const std::string& text) {
-		gtk_entry_set_text(ptr(), text.c_str());
+		set_text(text.c_str());
+	}
+	void set_text(const char *text) {
+		gtk_entry_set_text(ptr(), text);
 	}
 
 	// Signals.
@@ -350,10 +361,17 @@ struct label : misc<T> {
 		handles::handle<impl_type, Ownership>{reinterpret_cast<impl_type *>(
 			gtk_label_new(str.c_str())
 		)} {}
+		handle(const char *str = "") :
+		handles::handle<impl_type, Ownership>{reinterpret_cast<impl_type *>(
+			gtk_label_new(str)
+		)} {}
 	};
 
 	void set_text(const std::string& text) {
-		gtk_label_set_text(ptr(), text.c_str());
+		set_text(text.c_str());
+	}
+	void set_text(const char *text) {
+		gtk_label_set_text(ptr(), text);
 	}
 
 	void set_ellipsize(PangoEllipsizeMode mode) {
@@ -379,10 +397,18 @@ struct button : bin<T> {
 		handles::handle<impl_type, Ownership>{reinterpret_cast<impl_type *>(
 			gtk_button_new_with_label(label.c_str())
 		)} {}
+		handle(const char *label = "") :
+		handles::handle<impl_type, Ownership>{reinterpret_cast<impl_type *>(
+			gtk_button_new_with_label(label)
+		)} {}
 
 		handle(const std::string& icon_name, GtkIconSize size) :
 		handles::handle<impl_type, Ownership>{reinterpret_cast<impl_type *>(
 			gtk_button_new_from_icon_name(icon_name.c_str(), size)
+		)} {}
+		handle(const char *icon_name, GtkIconSize size) :
+		handles::handle<impl_type, Ownership>{reinterpret_cast<impl_type *>(
+			gtk_button_new_from_icon_name(icon_name, size)
 		)} {}
 	};
 

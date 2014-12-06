@@ -59,20 +59,26 @@ struct web_view : gtk::widget<T> {
 		handle(const std::string& uri) : handle{} {
 			this->get()->load_uri(uri);
 		}
+		handle(const char *uri) : handle{} {
+			this->get()->load_uri(uri);
+		}
 	};
 
 	// load_uri begins the loading the URI described by uri in the web_view.
 	void load_uri(const std::string& uri) {
-		webkit_web_view_load_uri(ptr(), uri.c_str());
+		load_uri(uri.c_str());
+	}
+	void load_uri(const char *uri) {
+		webkit_web_view_load_uri(ptr(), uri);
 	}
 
 	// get_uri returns the URI of the web_view.
-	std::string get_uri() {
+	const char * get_uri() {
 		auto uri = webkit_web_view_get_uri(ptr());
 		return uri ? uri : "";
 	}
 
-	std::string get_title() {
+	const char * get_title() {
 		auto title = webkit_web_view_get_title(ptr());
 		return title ? title : "";
 	}

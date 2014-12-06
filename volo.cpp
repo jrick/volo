@@ -8,7 +8,6 @@
 #include <gdk/gdkkeysyms.h>
 
 using namespace volo;
-using namespace std::string_literals;
 
 const std::array<std::string, 2> recognized_uri_schemes = { {
 	"http://",
@@ -30,7 +29,7 @@ void guess_uri(std::string& uri) {
 	uri = "http://" + uri;
 }
 
-browser::browser(const std::vector<std::string>& uris) {
+browser::browser(const std::vector<const char *>&uris) {
 	back->set_can_focus(false);
 	fwd->set_can_focus(false);
 	auto histnav_style = histnav->get_style_context();
@@ -77,7 +76,7 @@ browser::browser(const std::vector<std::string>& uris) {
 }
 
 void browser::on_nav_entry_activate(gtk::entry<uri_entry<>::c_type>& entry) {
-	auto uri = nav_entry->get_text();
+	std::string uri = nav_entry->get_text();
 	guess_uri(uri);
 	visable_tab.web_view->load_uri(uri);
 	visable_tab.web_view->grab_focus();
@@ -184,7 +183,7 @@ void browser::on_window_destroy(gtk::widget<gtk::window<>::c_type>& w) {
 	gtk_main_quit();
 }
 
-browser_tab::browser_tab(const std::string& uri) : wv{uri}, tab_title{"New tab"} {
+browser_tab::browser_tab(const char *uri) : wv{uri}, tab_title{"New tab"} {
 	tab_title->set_can_focus(false);
 	tab_title->set_hexpand(true);
 	tab_title->set_ellipsize(PANGO_ELLIPSIZE_END);
@@ -209,7 +208,7 @@ void browser::on_web_view_notify_title(webkit::web_view<>& wv, GParamSpec& param
 	}
 }
 
-int browser::open_new_tab(const std::string& uri) {
+int browser::open_new_tab(const char *uri) {
 	tabs.emplace_back(uri);
 	auto& tab = tabs.back();
 	auto& wv = *tab.wv;
@@ -331,7 +330,7 @@ void browser::show_webview(unsigned int page_num, webkit::web_view<>& wv) {
 	//
 	// TODO: If this webview is being shown by clicking another notebook
 	// tab, grabbing the entry focus has no effect.
-	if (uri == "") {
+	if (!strcmp(uri, "")) {
 		nav_entry->grab_focus();
 	} else {
 		wv.grab_focus();

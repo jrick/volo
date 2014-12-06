@@ -34,6 +34,7 @@ public:
 	// text if the entry is not receiving input events (that is, when
 	// it is not the grab widget).
 	void set_uri(const std::string& uri);
+	void set_uri(const char *uri);
 
 	// Overridden signal vfuncs.  A static overload is used to allow
 	// assignment to a parent class, and simply calls the non-static

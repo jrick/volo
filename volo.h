@@ -23,7 +23,7 @@ struct browser_tab {
 	gtk::label<>::handle<> tab_title;
 	gtk::button<>::handle<> tab_close{"window-close", GTK_ICON_SIZE_BUTTON};
 
-	browser_tab(const std::string&);
+	browser_tab(const char *);
 	browser_tab(browser_tab&&) = default;
 	browser_tab& operator=(browser_tab&&) = default;
 };
@@ -63,14 +63,14 @@ public:
 	// Constructors to create the toplevel browser window widget.  Multiple
 	// URIs (a "session") to open may be specified, while the default
 	// constructor will open a single tab to a single blank page.
-	browser() : browser{{""}} {}
-	browser(const std::vector<std::string>&);
+	browser() : browser{std::vector<const char *>{""}} {}
+	browser(const std::vector<const char *>&);
 
 	// open_new_tab creates a new tab, loading the specified resource, and
 	// adds it to the browser, appending the page to the end of the
 	// notebook.  The notebook index is returned and may be used to switch
 	// view to the newly opened tab.
-	int open_new_tab(const std::string&);
+	int open_new_tab(const char *);
 
 	// show_window calls the show method of the browser's window widget.
 	void show_window();
