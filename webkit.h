@@ -106,8 +106,7 @@ struct web_view : gtk::widget<T> {
 
 	// get_back_forward_list returnes the back forward list associated with
 	// the webview.  It is owned by webview and may not be destroyed by the
-	// caller (if wrapped, use gtk::handles::ref_counted or
-	// gtk::handles::floating).
+	// caller.
 	WebKitBackForwardList * get_back_forward_list() {
 		return webkit_web_view_get_back_forward_list(ptr());
 	}
