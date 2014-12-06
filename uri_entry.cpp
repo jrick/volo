@@ -67,8 +67,8 @@ void VoloURIEntry::set_uri(const char *uri) {
 	}
 }
 
-gtk::entry<>::c_class_type * VoloURIEntry::parent_vtable() {
-	return reinterpret_cast<gtk::entry<>::c_class_type *>(
+gtk::entry::class_type * VoloURIEntry::parent_vtable() {
+	return reinterpret_cast<gtk::entry::class_type *>(
 		volo_uri_entry_parent_class
 	);
 }
@@ -101,7 +101,9 @@ bool VoloURIEntry::button_release(GdkEventButton& ev) {
 		grab_focus();
 	}
 	editing = true;
-	return gtk::entry<>::button_release_event(parent_vtable(), ev);
+	auto entry_vtable = parent_vtable();
+	auto widget_vtable = &entry_vtable->parent_class;
+	return gtk::entry::button_release_event(widget_vtable, ev);
 }
 
 gboolean VoloURIEntry::focus_out_event(GtkWidget *w, GdkEventFocus *f) {
@@ -111,7 +113,9 @@ gboolean VoloURIEntry::focus_out_event(GtkWidget *w, GdkEventFocus *f) {
 bool VoloURIEntry::focus_out_event(GdkEventFocus& f) {
 	select_region(0, 0);
 	editing = false;
-	return gtk::entry<>::focus_out_event(parent_vtable(), f);
+	auto entry_vtable = parent_vtable();
+	auto widget_vtable = &entry_vtable->parent_class;
+	return gtk::entry::focus_out_event(widget_vtable, f);
 }
 
 void VoloURIEntry::icon_press(GtkEntry *e, GtkEntryIconPosition icon_pos,

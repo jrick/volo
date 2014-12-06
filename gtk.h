@@ -38,7 +38,12 @@ struct connection {
 	}
 };
 
-template <class T = GObject>
+struct style_context;
+struct widget;
+
+namespace methods {
+
+template <class T, class Derived>
 struct gobject : T {
 	using c_type = GObject;
 
@@ -76,8 +81,8 @@ struct gobject : T {
 	c_type * ptr() { return reinterpret_cast<c_type *>(this); }
 };
 
-template <class T = GtkStyleContext>
-struct style_context : gobject<T> {
+template <class T, class Derived>
+struct style_context : gobject<T, Derived> {
 	using c_type = GtkStyleContext;
 
 	void add_class(const std::string& class_name) {
@@ -90,8 +95,8 @@ struct style_context : gobject<T> {
 	c_type * ptr() { return reinterpret_cast<c_type *>(this); }
 };
 
-template <class T = GtkWidget>
-struct widget : gobject<T> {
+template <class T, class Derived>
+struct widget : gobject<T, Derived> {
 	using c_type = GtkWidget;
 	using c_class_type = GtkWidgetClass;
 
@@ -140,7 +145,7 @@ struct widget : gobject<T> {
 	}
 
 	auto get_style_context() {
-		return reinterpret_cast<style_context<> *>(
+		return reinterpret_cast<gtk::style_context *>(
 			gtk_widget_get_style_context(ptr())
 		);
 	}
@@ -148,14 +153,14 @@ struct widget : gobject<T> {
 	// Signals.
 
 	template <class U>
-	using key_press_event_slot = bool (*)(widget *, GdkEventKey *, U *);
+	using key_press_event_slot = bool (*)(Derived *, GdkEventKey *, U *);
 	template <class U>
 	connection connect_key_press_event(U& obj, key_press_event_slot<U> slot) {
 		return this->connect("key-press-event", G_CALLBACK(slot), &obj);
 	}
 
 	template <class U>
-	using destroy_slot = void (*)(widget *, U *);
+	using destroy_slot = void (*)(Derived *, U *);
 	template <class U>
 	connection connect_destroy(U& obj, destroy_slot<U> slot) {
 		return this->connect("destroy", G_CALLBACK(slot), &obj);
@@ -185,28 +190,24 @@ struct widget : gobject<T> {
 	c_class_type * vtable() { return GTK_WIDGET_GET_CLASS(ptr()); }
 };
 
-template <class T = GtkContainer>
-struct container : widget<T> {
+template <class T, class Derived>
+struct container : widget<T, Derived> {
 	using c_type = GtkContainer;
 
-	template <class U>
-	void add(widget<U>& w) {
+	template <class U, class UDerived>
+	void add(widget<U, UDerived>& w) {
 		gtk_container_add(ptr(), w.ptr());
 	}
 
 	c_type * ptr() { return reinterpret_cast<c_type *>(this); }
 };
 
-template <class T = GtkBin>
-struct bin : container<T> {};
+template <class T, class Derived>
+struct bin : container<T, Derived> {};
 
-template <class T = GtkWindow>
-struct window : bin<T> {
+template <class T, class Derived>
+struct window : bin<T, Derived> {
 	using c_type = GtkWindow;
-
-	static auto create(GtkWindowType type = GTK_WINDOW_TOPLEVEL) {
-		return reinterpret_cast<window *>(gtk_window_new(type));
-	}
 
 	void set_title(const std::string& title) {
 		set_title(title.c_str());
@@ -219,16 +220,16 @@ struct window : bin<T> {
 		gtk_window_set_default_size(ptr(), width, height);
 	}
 
-	template <class U>
-	void set_titlebar(widget<U>& titlebar) {
+	template <class U, class UDerived>
+	void set_titlebar(widget<U, UDerived>& titlebar) {
 		gtk_window_set_titlebar(ptr(), titlebar.ptr());
 	}
 
 	c_type * ptr() { return reinterpret_cast<c_type *>(this); }
 };
 
-template <class T = GtkEditable>
-struct editable : gobject<T> {
+template <class T, class Derived>
+struct editable : gobject<T, Derived> {
 	using c_type = GtkEditable;
 
 	bool get_selection_bounds(int& start, int& end) {
@@ -242,13 +243,9 @@ struct editable : gobject<T> {
 	c_type * ptr() { return reinterpret_cast<c_type *>(this); }
 };
 
-template <class T = GtkEntry>
-struct entry : editable<widget<T>> {
+template <class T, class Derived>
+struct entry : editable<widget<T, Derived>, Derived> {
 	using c_type = GtkEntry;
-
-	static auto create() {
-		return reinterpret_cast<entry *>(gtk_entry_new());
-	}
 
 	const char * get_text() {
 		return gtk_entry_get_text(ptr());
@@ -275,7 +272,7 @@ struct entry : editable<widget<T>> {
 	// Signals.
 
 	template <class U>
-	using activate_slot = void (*)(entry *, U *);
+	using activate_slot = void (*)(Derived *, U *);
 	template <class U>
 	connection connect_activate(U& obj, activate_slot<U> slot) {
 		return this->connect("activate", G_CALLBACK(slot), &obj);
@@ -284,19 +281,12 @@ struct entry : editable<widget<T>> {
 	c_type * ptr() { return reinterpret_cast<c_type *>(this); }
 };
 
-template <class T = GtkMisc>
-struct misc : widget<T> {};
+template <class T, class Derived>
+struct misc : widget<T, Derived> {};
 
-template <class T = GtkLabel>
-struct label : misc<T> {
+template <class T, class Derived>
+struct label : misc<T, Derived> {
 	using c_type = GtkLabel;
-
-	static auto create(const char *str = "") {
-		return reinterpret_cast<label *>(gtk_label_new(str));
-	}
-	static auto create(const std::string& str) {
-		return create(str.c_str());
-	}
 
 	void set_text(const std::string& text) {
 		set_text(text.c_str());
@@ -312,29 +302,9 @@ struct label : misc<T> {
 	c_type * ptr() { return reinterpret_cast<c_type *>(this); }
 };
 
-template <class T = GtkButton>
-struct button : bin<T> {
+template <class T, class Derived>
+struct button : bin<T, Derived> {
 	using c_type = GtkButton;
-
-	static auto create() {
-		return reinterpret_cast<button *>(gtk_button_new());
-	}
-
-	static auto create(const char *label) {
-		return reinterpret_cast<button *>(gtk_button_new_with_label(label));
-	}
-	static auto create(const std::string& label) {
-		return create(label.c_str());
-	}
-
-	static auto create(const char *icon_name, GtkIconSize size) {
-		return reinterpret_cast<button *>(
-			gtk_button_new_from_icon_name(icon_name, size)
-		);
-	}
-	static auto create(const std::string& icon_name, GtkIconSize size) {
-		return create(icon_name.c_str(), size);
-	}
 
 	void set_relief(GtkReliefStyle relief) {
 		gtk_button_set_relief(ptr(), relief);
@@ -343,7 +313,7 @@ struct button : bin<T> {
 	// Signals.
 
 	template <class U>
-	using connect_clicked_slot = void (*)(button *, U *);
+	using connect_clicked_slot = void (*)(Derived *, U *);
 	template <class U>
 	connection connect_clicked(U& obj, connect_clicked_slot<U> slot) {
 		return this->connect("clicked", G_CALLBACK(slot), &obj);
@@ -352,23 +322,19 @@ struct button : bin<T> {
 	c_type * ptr() { return reinterpret_cast<c_type *>(this); }
 };
 
-template <class T = GtkBox>
-struct box : container<T> {
+template <class T, class Derived>
+struct box : container<T, Derived> {
 	using c_type = GtkBox;
 
-	static auto create(GtkOrientation orientation = GTK_ORIENTATION_HORIZONTAL, int spacing = 0) {
-		return reinterpret_cast<box *>(gtk_box_new(orientation, spacing));
-	}
-
-	template <class U>
-	void pack_start(widget<U>& child, bool expand = true, bool fill = true,
+	template <class U, class UDerived>
+	void pack_start(widget<U, UDerived>& child, bool expand = true, bool fill = true,
 		unsigned int padding = 0)
 	{
 		gtk_box_pack_start(ptr(), child.ptr(), expand, fill, padding);
 	}
 
-	template <class U>
-	void pack_end(widget<U>& child, bool expand = true, bool fill = true,
+	template <class U, class UDerived>
+	void pack_end(widget<U, UDerived>& child, bool expand = true, bool fill = true,
 		unsigned int padding = 0)
 	{
 		gtk_box_pack_end(ptr(), child.ptr(), expand, fill, padding);
@@ -377,16 +343,12 @@ struct box : container<T> {
 	c_type * ptr() { return reinterpret_cast<c_type *>(this); }
 };
 
-template <class T = GtkNotebook>
-struct notebook : container<T> {
+template <class T, class Derived>
+struct notebook : container<T, Derived> {
 	using c_type = GtkNotebook;
 
-	static auto create() {
-		return reinterpret_cast<notebook *>(gtk_notebook_new());
-	}
-
-	template <class U0, class U1>
-	int append_page(widget<U0>& child, widget<U1>& tab_label) {
+	template <class U0, class U1, class U2, class U3>
+	int append_page(widget<U0, U1>& child, widget<U2, U3>& tab_label) {
 		return gtk_notebook_append_page(ptr(), child.ptr(), tab_label.ptr());
 	}
 
@@ -410,36 +372,36 @@ struct notebook : container<T> {
 		gtk_notebook_set_scrollable(ptr(), scrollable);
 	}
 
-	template <class U>
-	void set_tab_reorderable(widget<U>& child, bool reorderable = true) {
+	template <class U, class UDerived>
+	void set_tab_reorderable(widget<U, UDerived>& child, bool reorderable = true) {
 		gtk_notebook_set_tab_reorderable(ptr(), child.ptr(), reorderable);
 	}
 
 	// Signals.
 
 	template <class U>
-	using page_added_slot = void (*)(notebook *, widget<> *, unsigned int, U *);
+	using page_added_slot = void (*)(Derived *, gtk::widget *, unsigned int, U *);
 	template <class U>
 	connection connect_page_added(U& obj, page_added_slot<U> slot) {
 		return this->connect("page-added", G_CALLBACK(slot), &obj);
 	}
 
 	template <class U>
-	using page_removed_slot = void (*)(notebook *, widget<> *, unsigned int, U *);
+	using page_removed_slot = void (*)(Derived *, gtk::widget *, unsigned int, U *);
 	template <class U>
 	connection connect_page_removed(U& obj, page_removed_slot<U> slot) {
 		return this->connect("page-removed", G_CALLBACK(slot), &obj);
 	}
 
 	template <class U>
-	using switch_page_slot = void (*)(notebook *, widget<> *, unsigned int, U *);
+	using switch_page_slot = void (*)(Derived *, gtk::widget *, unsigned int, U *);
 	template <class U>
 	connection connect_switch_page(U& obj, switch_page_slot<U> slot) {
 		return this->connect("switch-page", G_CALLBACK(slot), &obj);
 	}
 
 	template <class U>
-	using page_reordered_slot = void (*)(notebook *, widget<> *, unsigned int, U *);
+	using page_reordered_slot = void (*)(Derived *, gtk::widget *, unsigned int, U *);
 	template <class U>
 	connection connect_page_reordered(U& obj, page_reordered_slot<U> slot) {
 		return this->connect("page-reordered", G_CALLBACK(slot), &obj);
@@ -448,26 +410,22 @@ struct notebook : container<T> {
 	c_type * ptr() { return reinterpret_cast<c_type *>(this); }
 };
 
-template <class T = GtkHeaderBar>
-struct header_bar : container<T> {
+template <class T, class Derived>
+struct header_bar : container<T, Derived> {
 	using c_type = GtkHeaderBar;
 
-	static auto create() {
-		return reinterpret_cast<header_bar<> *>(gtk_header_bar_new());
-	}
-
-	template <class U>
-	void set_custom_title(widget<U>& title_widget) {
+	template <class U, class UDerived>
+	void set_custom_title(widget<U, UDerived>& title_widget) {
 		gtk_header_bar_set_custom_title(ptr(), title_widget.ptr());
 	}
 
-	template <class U>
-	void pack_start(widget<U>& child) {
+	template <class U, class UDerived>
+	void pack_start(widget<U, UDerived>& child) {
 		gtk_header_bar_pack_start(ptr(), child.ptr());
 	}
 
-	template <class U>
-	void pack_end(widget<U>& child) {
+	template <class U, class UDerived>
+	void pack_end(widget<U, UDerived>& child) {
 		gtk_header_bar_pack_end(ptr(), child.ptr());
 	}
 
@@ -476,6 +434,83 @@ struct header_bar : container<T> {
 	}
 
 	c_type * ptr() { return reinterpret_cast<c_type *>(this); }
+};
+
+} // namespace methods
+
+struct gobject : methods::gobject<GObject, gobject> {};
+
+struct style_context : methods::style_context<GtkStyleContext, style_context> {};
+
+struct widget : methods::widget<GtkWidget, widget> {};
+
+struct container : methods::container<GtkContainer, container> {};
+
+struct bin : methods::bin<GtkBin, bin> {};
+
+struct window : methods::window<GtkWindow, window> {
+	static auto create(GtkWindowType type = GTK_WINDOW_TOPLEVEL) {
+		return reinterpret_cast<window *>(gtk_window_new(type));
+	}
+};
+
+struct entry : methods::entry<GtkEntry, entry> {
+	using class_type = GtkEntryClass;
+
+	static auto create() {
+		return reinterpret_cast<entry *>(gtk_entry_new());
+	}
+};
+
+struct misc : methods::misc<GtkMisc, misc> {};
+
+struct label : methods::label<GtkLabel, label> {
+	static auto create(const char *str = "") {
+		return reinterpret_cast<label *>(gtk_label_new(str));
+	}
+	static auto create(const std::string& str) {
+		return create(str.c_str());
+	}
+};
+
+struct button : methods::button<GtkButton, button> {
+	static auto create() {
+		return reinterpret_cast<button *>(gtk_button_new());
+	}
+
+	static auto create(const char *label) {
+		return reinterpret_cast<button *>(gtk_button_new_with_label(label));
+	}
+	static auto create(const std::string& label) {
+		return create(label.c_str());
+	}
+
+	static auto create(const char *icon_name, GtkIconSize size) {
+		return reinterpret_cast<button *>(
+			gtk_button_new_from_icon_name(icon_name, size)
+		);
+	}
+	static auto create(const std::string& icon_name, GtkIconSize size) {
+		return create(icon_name.c_str(), size);
+	}
+};
+
+struct box : methods::box<GtkBox, box> {
+	static auto create(GtkOrientation orientation = GTK_ORIENTATION_HORIZONTAL, int spacing = 0) {
+		return reinterpret_cast<box *>(gtk_box_new(orientation, spacing));
+	}
+};
+
+struct notebook : methods::notebook<GtkNotebook, notebook> {
+	static auto create() {
+		return reinterpret_cast<notebook *>(gtk_notebook_new());
+	}
+};
+
+struct header_bar : methods::header_bar<GtkHeaderBar, header_bar> {
+	static auto create() {
+		return reinterpret_cast<header_bar *>(gtk_header_bar_new());
+	}
 };
 
 } // namespace gtk

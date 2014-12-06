@@ -76,39 +76,37 @@ browser::browser(const std::vector<const char *>&uris) {
 	window->show_all();
 }
 
-void browser::on_nav_entry_activate(gtk::entry<uri_entry<>::c_type>& entry) {
+void browser::on_nav_entry_activate(uri_entry& entry) {
 	std::string uri = nav_entry->get_text();
 	guess_uri(uri);
 	visable_tab.web_view->load_uri(uri);
 	visable_tab.web_view->grab_focus();
 }
 
-void browser::on_notebook_switch_page(gtk::notebook<>& notebook, gtk::widget<>& page,
+void browser::on_notebook_switch_page(gtk::notebook& notebook, gtk::widget& page,
 	unsigned int page_num) {
 
 	switch_page(page_num);
 }
 
-void browser::on_notebook_page_added(gtk::notebook<>& notebook, gtk::widget<>& child,
+void browser::on_notebook_page_added(gtk::notebook& notebook, gtk::widget& child,
 	unsigned int page_num) {
 
 	notebook.set_show_tabs(true);
 }
 
-void browser::on_notebook_page_removed(gtk::notebook<>& notebook, gtk::widget<>& child,
+void browser::on_notebook_page_removed(gtk::notebook& notebook, gtk::widget& child,
 	unsigned int page_num) {
 
 	notebook.set_show_tabs(notebook.get_n_pages() > 1);
 }
 
-void browser::on_new_tab_clicked(gtk::button<>& button) {
+void browser::on_new_tab_clicked(gtk::button& button) {
 	auto n = open_new_tab("");
 	nb->set_current_page(n);
 }
 
-bool browser::on_window_key_press_event(gtk::widget<gtk::window<>::c_type>& window,
-	GdkEventKey& ev) {
-
+bool browser::on_window_key_press_event(gtk::window& window, GdkEventKey& ev) {
 	auto kv = ev.keyval;
 	auto state = ev.state;
 
@@ -180,13 +178,13 @@ bool browser::on_window_key_press_event(gtk::widget<gtk::window<>::c_type>& wind
 	return true;
 }
 
-void browser::on_window_destroy(gtk::widget<gtk::window<>::c_type>& w) {
+void browser::on_window_destroy(gtk::window& w) {
 	gtk_main_quit();
 }
 
 browser_tab::browser_tab(const char *uri) :
-	wv{gtk::make_unique<webkit::web_view<>>(uri)},
-	tab_title{gtk::make_unique<gtk::label<>>("New tab")} {
+	wv{gtk::make_unique<webkit::web_view>(uri)},
+	tab_title{gtk::make_unique<gtk::label>("New tab")} {
 
 	tab_title->set_can_focus(false);
 	tab_title->set_hexpand(true);
@@ -194,7 +192,7 @@ browser_tab::browser_tab(const char *uri) :
 	tab_title->set_size_request(50, -1);
 }
 
-void browser::on_web_view_notify_title(webkit::web_view<>& wv, GParamSpec& param_spec) {
+void browser::on_web_view_notify_title(webkit::web_view& wv, GParamSpec& param_spec) {
 	auto title = wv.get_title();
 	if (visable_tab.web_view == &wv) {
 		window->set_title(title);
@@ -217,7 +215,7 @@ int browser::open_new_tab(const char *uri) {
 	auto& tab = tabs.back();
 	auto& wv = *tab.wv;
 
-	auto tab_content = gtk::box<>::create();
+	auto tab_content = gtk::box::create();
 	tab_content->set_can_focus(false);
 	tab_content->add(*tab.tab_title);
 	tab_content->add(*tab.tab_close);
@@ -237,7 +235,7 @@ void browser::show_window() {
 	window->show();
 }
 
-void browser::on_tab_close_clicked(gtk::button<>& tab_close) {
+void browser::on_tab_close_clicked(gtk::button& tab_close) {
 	for (auto it = tabs.begin(), ite = tabs.end(); it != ite; ++it) {
 		// Compare using pointer equality.
 		if (it->tab_close->ptr() != &tab_close) {
@@ -262,11 +260,11 @@ void browser::on_tab_close_clicked(gtk::button<>& tab_close) {
 	}
 }
 
-void browser::on_back_button_clicked(gtk::button<>& back) {
+void browser::on_back_button_clicked(gtk::button& back) {
 	visable_tab.web_view->go_back();
 }
 
-void browser::on_fwd_button_clicked(gtk::button<>& fwd) {
+void browser::on_fwd_button_clicked(gtk::button& fwd) {
 	visable_tab.web_view->go_forward();
 }
 
@@ -278,16 +276,16 @@ void browser::on_back_forward_list_changed(WebKitBackForwardList& bfl,
 	}
 }
 
-void browser::on_web_view_notify_uri(webkit::web_view<>& web_view, GParamSpec& param_spec) {
+void browser::on_web_view_notify_uri(webkit::web_view& web_view, GParamSpec& param_spec) {
 	nav_entry->set_uri(web_view.get_uri());
 }
 
-static void on_nav_entry_refresh_clicked(uri_entry<> *entry, webkit::web_view<> *web_view) {
+static void on_nav_entry_refresh_clicked(uri_entry *entry, webkit::web_view *web_view) {
 	web_view->reload();
 	web_view->grab_focus();
 }
 
-void browser::on_notebook_page_reordered(gtk::notebook<>& notebook, gtk::widget<>& child,
+void browser::on_notebook_page_reordered(gtk::notebook& notebook, gtk::widget& child,
 	unsigned int new_idx) {
 
 	// NOTE: This only works when reordering the current visable tab.
@@ -310,7 +308,7 @@ void browser::on_notebook_page_reordered(gtk::notebook<>& notebook, gtk::widget<
 	visable_tab.tab_index = new_idx;
 }
 
-void browser::show_webview(unsigned int page_num, webkit::web_view<>& wv) {
+void browser::show_webview(unsigned int page_num, webkit::web_view& wv) {
 	visable_tab = {page_num, wv};
 
 	// Update navbar/titlebar with the current state of the webview being
@@ -341,7 +339,7 @@ void browser::show_webview(unsigned int page_num, webkit::web_view<>& wv) {
 	}
 }
 
-void browser::update_histnav(webkit::web_view<>& wv) {
+void browser::update_histnav(webkit::web_view& wv) {
 	back->set_sensitive(wv.can_go_back());
 	fwd->set_sensitive(wv.can_go_forward());
 }
@@ -360,7 +358,7 @@ void browser::switch_page(unsigned int page_num) {
 int main(int argc, char **argv) {
 	gtk_init(&argc, &argv);
 
-	auto web_cxt = webkit::web_context<>::get_default();
+	auto web_cxt = webkit::web_context::get_default();
 	web_cxt->set_process_model(WEBKIT_PROCESS_MODEL_MULTIPLE_SECONDARY_PROCESSES);
 
 	auto b = browser{};

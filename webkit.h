@@ -13,17 +13,11 @@
 
 namespace webkit {
 
-template <class T = WebKitWebContext>
-struct web_context : gtk::gobject<T> {
-	using c_type = WebKitWebContext;
+namespace methods {
 
-	// get_default returns the wrapped default WebKitWebContext.
-	// Non-default web_contexts may be representable in later versions
-	// of WebKitGTK, but as of 2.6, it appears that only the default context
-	// ever exists.
-	static auto get_default() {
-		return reinterpret_cast<web_context *>(webkit_web_context_get_default());
-	}
+template <class T, class Derived>
+struct web_context : gtk::methods::gobject<T, Derived> {
+	using c_type = WebKitWebContext;
 
 	// set_process_model modifies the process model for a web context.
 	// By default, a web context will use a single process to manage
@@ -38,22 +32,9 @@ struct web_context : gtk::gobject<T> {
 	c_type * ptr() { return reinterpret_cast<c_type *>(this); }
 };
 
-template <class T = WebKitWebView>
-struct web_view : gtk::widget<T> {
+template <class T, class Derived>
+struct web_view : gtk::methods::widget<T, Derived> {
 	using c_type = WebKitWebView;
-
-	static auto create() {
-		return reinterpret_cast<web_view *>(webkit_web_view_new());
-	}
-
-	static auto create(const char *uri) {
-		auto ptr = create();
-		ptr->load_uri(uri);
-		return ptr;
-	}
-	static auto create(const std::string& uri) {
-		return create(uri.c_str());
-	}
 
 	// load_uri begins the loading the URI described by uri in the web_view.
 	void load_uri(const std::string& uri) {
@@ -116,25 +97,52 @@ struct web_view : gtk::widget<T> {
 	template <class U>
 	gtk::connection connect_back_forward_list_changed(U& obj, back_forward_list_changed_slot<U> slot) {
 		auto bfl = get_back_forward_list();
-		auto bfl_obj = static_cast<gtk::gobject<WebKitBackForwardList> *>(bfl);
+		auto bfl_obj = static_cast<gtk::methods::gobject<WebKitBackForwardList, gtk::gobject> *>(bfl);
 		return bfl_obj->connect("changed", G_CALLBACK(slot), &obj);
 	}
 
 	template <class U>
-	using notify_title_slot = void (*)(web_view *, GParamSpec *, U *);
+	using notify_title_slot = void (*)(Derived *, GParamSpec *, U *);
 	template <class U>
 	gtk::connection connect_notify_title(U& obj, notify_title_slot<U> slot) {
 		return this->connect("notify::title", G_CALLBACK(slot), &obj);
 	}
 
 	template <class U>
-	using notify_uri_slot = void (*)(web_view *, GParamSpec *, U *);
+	using notify_uri_slot = void (*)(Derived *, GParamSpec *, U *);
 	template <class U>
 	gtk::connection connect_notify_uri(U& obj, notify_uri_slot<U> slot) {
 		return this->connect("notify::uri", G_CALLBACK(slot), &obj);
 	}
 
 	c_type * ptr() { return reinterpret_cast<c_type *>(this); }
+};
+
+} // namespace methods
+
+struct web_context : methods::web_context<WebKitWebContext, web_context> {
+	// get_default returns the wrapped default WebKitWebContext.
+	// Non-default web_contexts may be representable in later versions
+	// of WebKitGTK, but as of 2.6, it appears that only the default context
+	// ever exists.
+	static auto get_default() {
+		return reinterpret_cast<web_context *>(webkit_web_context_get_default());
+	}
+};
+
+struct web_view : methods::web_view<WebKitWebView, web_view> {
+	static auto create() {
+		return reinterpret_cast<web_view *>(webkit_web_view_new());
+	}
+
+	static auto create(const char *uri) {
+		auto ptr = create();
+		ptr->load_uri(uri);
+		return ptr;
+	}
+	static auto create(const std::string& uri) {
+		return create(uri.c_str());
+	}
 };
 
 } // namespace webkit

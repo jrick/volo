@@ -20,12 +20,12 @@ G_BEGIN_DECLS
 #define VOLO_IS_URI_ENTRY_CLASS(klass)		(G_TYPE_CHECK_CLASS_TYPE((klass), VOLO_TYPE_URI_ENTRY))
 #define VOLO_URI_ENTRY_GET_CLASS(obj)		(G_TYPE_INSTANCE_GET_CLASS((obj), VOLO_TYPE_URI_ENTRY, VoloURIEntryClass))
 
-class VoloURIEntry : public gtk::entry<> {
+class VoloURIEntry : public gtk::entry {
 private:
 	bool editing;
 	bool refresh_pressed;
 
-	static gtk::entry<>::c_class_type* parent_vtable();
+	static gtk::entry::class_type* parent_vtable();
 
 public:
 	friend void init(VoloURIEntry&);
@@ -61,21 +61,27 @@ G_END_DECLS
 
 namespace volo {
 
-template <class T = VoloURIEntry>
-struct uri_entry : gtk::entry<T> {
-	using c_type = VoloURIEntry;
+namespace methods {
 
-	static auto create() {
-		return reinterpret_cast<uri_entry *>(volo_uri_entry_new());
-	}
+template <class T, class Derived>
+struct uri_entry : gtk::methods::entry<T, Derived> {
+	using c_type = VoloURIEntry;
 
 	// Signals.
 
 	template <class U>
-	using refresh_clicked_slot = void (*)(uri_entry<T> *, U *);
+	using refresh_clicked_slot = void (*)(Derived *, U *);
 	template <class U>
 	gtk::connection connect_refresh_clicked(U& obj, refresh_clicked_slot<U> slot) {
 		return this->connect("refresh-clicked", G_CALLBACK(slot), &obj);
+	}
+};
+
+} // namespace methods
+
+struct uri_entry : methods::uri_entry<VoloURIEntry, uri_entry> {
+	static auto create() {
+		return reinterpret_cast<uri_entry *>(volo_uri_entry_new());
 	}
 };
 
