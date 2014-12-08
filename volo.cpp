@@ -192,6 +192,28 @@ browser_tab::browser_tab(const char *uri) :
 	tab_title->set_size_request(50, -1);
 }
 
+void browser::on_web_view_load_changed(webkit::web_view& wv, WebKitLoadEvent load_event) {
+	GTlsCertificate *certificate = nullptr;
+	GTlsCertificateFlags errors{};
+
+	switch (load_event) {
+	case WEBKIT_LOAD_STARTED:
+		break;
+
+	case WEBKIT_LOAD_REDIRECTED:
+		break;
+
+	case WEBKIT_LOAD_COMMITTED:
+		if (wv.get_tls_info(certificate, errors)) {
+		} else {
+		}
+		break;
+
+	case WEBKIT_LOAD_FINISHED:
+		break;
+	}
+}
+
 void browser::on_web_view_notify_title(webkit::web_view& wv, GParamSpec& param_spec) {
 	auto title = wv.get_title();
 	if (visable_tab.web_view == &wv) {
@@ -324,6 +346,7 @@ void browser::show_webview(unsigned int page_num, webkit::web_view& wv) {
 		fwd->connect_clicked(*this, on_fwd_button_clicked),
 		wv.connect_back_forward_list_changed(*this, on_back_forward_list_changed),
 		wv.connect_notify_uri(*this, on_web_view_notify_uri),
+		wv.connect_load_changed(*this, on_web_view_load_changed),
 		nav_entry->connect_refresh_clicked(wv, ::on_nav_entry_refresh_clicked),
 		nb->connect_page_reordered(*this, on_notebook_page_reordered),
 	} };

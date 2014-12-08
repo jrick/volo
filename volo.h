@@ -54,7 +54,7 @@ private:
 	gtk::unique_ptr<uri_entry> nav_entry{gtk::make_unique<uri_entry>()};
 	gtk::unique_ptr<gtk::notebook> nb{gtk::make_unique<gtk::notebook>()};
 	// Details about the currently shown page.
-	std::array<gtk::connection, 6> page_signals;
+	std::array<gtk::connection, 7> page_signals;
 	struct visable_tab {
 		unsigned int tab_index{0};
 		webkit::web_view *web_view{nullptr};
@@ -99,6 +99,7 @@ private:
 	void on_fwd_button_clicked(gtk::button&);
 	void on_back_forward_list_changed(WebKitBackForwardList&, WebKitBackForwardListItem&,
 		gpointer);
+	void on_web_view_load_changed(webkit::web_view&, WebKitLoadEvent);
 	void on_web_view_notify_uri(webkit::web_view&, GParamSpec&);
 	void on_web_view_notify_title(webkit::web_view&, GParamSpec&);
 
@@ -143,6 +144,10 @@ private:
 	static void on_back_forward_list_changed(WebKitBackForwardList *button,
 		WebKitBackForwardListItem *item_added, gpointer items_removed, browser *b) {
 		b->on_back_forward_list_changed(*button, *item_added, items_removed);
+	}
+	static void on_web_view_load_changed(webkit::web_view *web_view,
+		WebKitLoadEvent load_event, browser *b) {
+		b->on_web_view_load_changed(*web_view, load_event);
 	}
 	static void on_web_view_notify_uri(webkit::web_view *web_view,
 		GParamSpec *param_spec, browser *b) {

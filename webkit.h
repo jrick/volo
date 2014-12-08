@@ -89,6 +89,10 @@ struct web_view : gtk::methods::widget<T, Derived> {
 		return webkit_web_view_get_back_forward_list(ptr());
 	}
 
+	bool get_tls_info(GTlsCertificate *& certificate, GTlsCertificateFlags& errors) {
+		return webkit_web_view_get_tls_info(ptr(), &certificate, &errors);
+	}
+
 	// Signals
 
 	template <class U>
@@ -99,6 +103,13 @@ struct web_view : gtk::methods::widget<T, Derived> {
 		auto bfl = get_back_forward_list();
 		auto bfl_obj = static_cast<gtk::methods::gobject<WebKitBackForwardList, gtk::gobject> *>(bfl);
 		return bfl_obj->connect("changed", G_CALLBACK(slot), &obj);
+	}
+
+	template <class U>
+	using load_changed_slot = void (*)(Derived *, WebKitLoadEvent, U *);
+	template <class U>
+	gtk::connection connect_load_changed(U& obj, load_changed_slot<U> slot) {
+		return this->connect("load-changed", G_CALLBACK(slot), &obj);
 	}
 
 	template <class U>
