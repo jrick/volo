@@ -50,9 +50,10 @@ struct gobject : T {
 	// This struct and derived structs are only used for the method
 	// interface (by reinterpret_cast'ing T pointers to gobject<T>
 	// pointers).  They cannot be constructed, copied, or moved.  See
-	// the make_unique function to construct an object that is destroyed
-	// after going out of scope, or use the static create member function
-	// to return a raw pointer with a floating reference.
+	// the make_sunk free function and the gtk::unique_ptr class to
+	// construct an object that is destroyed after going out of scope,
+	// or use the static create member function to return a raw pointer
+	// with a floating reference.
 	gobject() = delete;
 	~gobject() = delete;
 	gobject(const gobject&) = delete;
