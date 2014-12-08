@@ -23,10 +23,10 @@ template <class T, class Deleter = destroy_delete<T>>
 using unique_ptr = std::unique_ptr<T, Deleter>;
 
 template <class T, class ...Args>
-unique_ptr<T> make_unique(Args ...args) {
+T * make_sunk(Args ...args) {
 	auto ptr = T::create(std::forward<Args>(args)...);
 	ptr->ref_sink();
-	return unique_ptr<T>(ptr);
+	return ptr;
 }
 
 struct connection {

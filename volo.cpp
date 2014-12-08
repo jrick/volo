@@ -183,8 +183,8 @@ void browser::on_window_destroy(gtk::window& w) {
 }
 
 browser_tab::browser_tab(const char *uri) :
-	wv{gtk::make_unique<webkit::web_view>(uri)},
-	tab_title{gtk::make_unique<gtk::label>("New tab")} {
+	wv{gtk::make_sunk<webkit::web_view>(uri)},
+	tab_title{gtk::make_sunk<gtk::label>("New tab")} {
 
 	tab_title->set_can_focus(false);
 	tab_title->set_hexpand(true);
