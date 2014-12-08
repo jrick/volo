@@ -205,7 +205,9 @@ void browser::on_web_view_load_changed(webkit::web_view& wv, WebKitLoadEvent loa
 
 	case WEBKIT_LOAD_COMMITTED:
 		if (wv.get_tls_info(certificate, errors)) {
+			// TODO: Display certificate details.
 		} else {
+			// TODO: Clear any displayed HTTPS details.
 		}
 		break;
 
