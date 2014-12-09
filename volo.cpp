@@ -385,6 +385,7 @@ int main(int argc, char **argv) {
 
 	auto web_cxt = webkit::web_context::get_default();
 	web_cxt->set_process_model(WEBKIT_PROCESS_MODEL_MULTIPLE_SECONDARY_PROCESSES);
+	web_cxt->set_tls_errors_policy(WEBKIT_TLS_ERRORS_POLICY_FAIL);
 
 	auto b = browser{};
 	b.show_window();

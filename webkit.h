@@ -19,6 +19,10 @@ template <class T, class Derived>
 struct web_context : gtk::methods::gobject<T, Derived> {
 	using c_type = WebKitWebContext;
 
+	void set_tls_errors_policy(WebKitTLSErrorsPolicy policy) {
+		webkit_web_context_set_tls_errors_policy(ptr(), policy);
+	}
+
 	// set_process_model modifies the process model for a web context.
 	// By default, a web context will use a single process to manage
 	// all WebViews.
