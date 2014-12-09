@@ -437,6 +437,9 @@ struct header_bar : container<T, Derived> {
 	c_type * ptr() { return reinterpret_cast<c_type *>(this); }
 };
 
+template <class T, class Derived>
+struct popover : bin<T, Derived> {};
+
 } // namespace methods
 
 struct gobject : methods::gobject<GObject, gobject> {};
@@ -511,6 +514,15 @@ struct notebook : methods::notebook<GtkNotebook, notebook> {
 struct header_bar : methods::header_bar<GtkHeaderBar, header_bar> {
 	static auto create() {
 		return reinterpret_cast<header_bar *>(gtk_header_bar_new());
+	}
+};
+
+struct popover : methods::popover<GtkPopover, popover> {
+	template <class Widget>
+	static auto create(Widget *relative_to) {
+		return reinterpret_cast<popover *>(
+			gtk_popover_new(relative_to ? relative_to->widget::ptr() : nullptr)
+		);
 	}
 };
 
