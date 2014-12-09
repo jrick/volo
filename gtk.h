@@ -87,7 +87,7 @@ struct style_context : gobject<T, Derived> {
 	using c_type = GtkStyleContext;
 
 	void add_class(const std::string& class_name) {
-		add_class(ptr(), class_name.c_str());
+		add_class(class_name.c_str());
 	}
 	void add_class(const char *class_name) {
 		gtk_style_context_add_class(ptr(), class_name);
