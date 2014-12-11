@@ -53,6 +53,8 @@ private:
 	};
 	gtk::unique_ptr<uri_entry> nav_entry{gtk::make_sunk<uri_entry>()};
 	gtk::unique_ptr<gtk::notebook> nb{gtk::make_sunk<gtk::notebook>()};
+	gtk::unique_ptr<gtk::search_bar> page_search{gtk::make_sunk<gtk::search_bar>()};
+	gtk::unique_ptr<gtk::search_entry> page_search_entry{gtk::make_sunk<gtk::search_entry>()};
 	// Details about the currently shown page.
 	std::array<gtk::connection, 7> page_signals;
 	struct visable_tab {

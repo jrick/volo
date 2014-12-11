@@ -129,6 +129,10 @@ struct widget : gobject<T, Derived> {
 		gtk_widget_set_hexpand(ptr(), expand);
 	}
 
+	void set_vexpand(bool expand) {
+		gtk_widget_set_vexpand(ptr(), expand);
+	}
+
 	void set_sensitive(bool sensitive) {
 		gtk_widget_set_sensitive(ptr(), sensitive);
 	}
@@ -283,6 +287,22 @@ struct entry : editable<widget<T, Derived>, Derived> {
 };
 
 template <class T, class Derived>
+struct search_entry : entry<T, Derived> {
+	using c_type = GtkSearchEntry;
+
+	// Signals.
+
+	template <class U>
+	using search_changed_slot = void (*)(Derived *, U *);
+	template <class U>
+	connection connect_search_changed(U& obj, search_changed_slot<U> slot) {
+		return this->connect("search-changed", G_CALLBACK(slot), &obj);
+	}
+
+	c_type * ptr() { return reinterpret_cast<c_type *>(this); }
+};
+
+template <class T, class Derived>
 struct misc : widget<T, Derived> {};
 
 template <class T, class Derived>
@@ -343,6 +363,20 @@ struct box : container<T, Derived> {
 
 	c_type * ptr() { return reinterpret_cast<c_type *>(this); }
 };
+
+template <class T, class Derived>
+struct orientable : gobject<T, Derived> {
+	using c_type = GtkOrientable;
+
+	void set_orientation(GtkOrientation orientation) {
+		gtk_orientable_set_orientation(ptr(), orientation);
+	}
+
+	c_type * ptr() { return reinterpret_cast<c_type *>(this); }
+};
+
+template <class T, class Derived>
+struct grid : container<orientable<T, Derived>, Derived> {};
 
 template <class T, class Derived>
 struct notebook : container<T, Derived> {
@@ -440,6 +474,26 @@ struct header_bar : container<T, Derived> {
 template <class T, class Derived>
 struct popover : bin<T, Derived> {};
 
+template <class T, class Derived>
+struct search_bar : bin<T, Derived> {
+	using c_type = GtkSearchBar;
+
+	template <class Entry>
+	void connect_entry(Entry& entry) {
+		gtk_search_bar_connect_entry(ptr(), entry.entry::ptr());
+	}
+
+	void set_search_mode(bool search_mode) {
+		gtk_search_bar_set_search_mode(ptr(), search_mode);
+	}
+
+	void set_show_close_button(bool visible) {
+		gtk_search_bar_set_show_close_button(ptr(), visible);
+	}
+
+	c_type * ptr() { return reinterpret_cast<c_type *>(this); }
+};
+
 } // namespace methods
 
 struct gobject : methods::gobject<GObject, gobject> {};
@@ -463,6 +517,12 @@ struct entry : methods::entry<GtkEntry, entry> {
 
 	static auto create() {
 		return reinterpret_cast<entry *>(gtk_entry_new());
+	}
+};
+
+struct search_entry : methods::search_entry<GtkSearchEntry, entry> {
+	static auto create() {
+		return reinterpret_cast<search_entry *>(gtk_search_entry_new());
 	}
 };
 
@@ -505,6 +565,12 @@ struct box : methods::box<GtkBox, box> {
 	}
 };
 
+struct grid : methods::grid<GtkGrid, grid> {
+	static auto create() {
+		return reinterpret_cast<grid *>(gtk_grid_new());
+	}
+};
+
 struct notebook : methods::notebook<GtkNotebook, notebook> {
 	static auto create() {
 		return reinterpret_cast<notebook *>(gtk_notebook_new());
@@ -523,6 +589,12 @@ struct popover : methods::popover<GtkPopover, popover> {
 		return reinterpret_cast<popover *>(
 			gtk_popover_new(relative_to ? relative_to->widget::ptr() : nullptr)
 		);
+	}
+};
+
+struct search_bar : methods::search_bar<GtkSearchBar, search_bar> {
+	static auto create() {
+		return reinterpret_cast<search_bar *>(gtk_search_bar_new());
 	}
 };
 

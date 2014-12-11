@@ -51,12 +51,21 @@ browser::browser(const std::vector<const char *>&uris) {
 
 	auto num_uris = uris.size();
 	nb->set_show_tabs(num_uris > 1);
+	nb->set_vexpand(true);
+
+	auto grid = gtk::grid::create();
+	grid->set_orientation(GTK_ORIENTATION_VERTICAL);
 
 	window->set_title("volo");
 	window->set_default_size(1024, 768);
 	window->set_titlebar(*navbar);
 	nb->set_scrollable(true);
-	window->add(*nb);
+	grid->add(*nb);
+
+	page_search_entry->set_size_request(200, -1);
+	page_search->add(*page_search_entry);
+	page_search->set_show_close_button(true);
+	grid->add(*page_search);
 
 	tabs.reserve(num_uris);
 	for (auto& uri : uris) {
@@ -73,6 +82,7 @@ browser::browser(const std::vector<const char *>&uris) {
 
 	show_webview(0, *tabs.front().wv);
 
+	window->add(*grid);
 	window->show_all();
 }
 
@@ -159,6 +169,9 @@ bool browser::on_window_key_press_event(gtk::window& window, GdkEventKey& ev) {
 		} else if (kv == GDK_KEY_q) {
 			tabs.clear();
 			window.destroy();
+			return true;
+		} else if (kv == GDK_KEY_f) {
+			page_search->set_search_mode(true);
 			return true;
 		} else if (kv >= GDK_KEY_1 && kv <= GDK_KEY_8) {
 			auto n = kv - GDK_KEY_1;
