@@ -27,6 +27,15 @@ struct browser_tab {
 	browser_tab(const char *);
 };
 
+struct search_bar {
+	gtk::unique_ptr<gtk::search_bar> bar{gtk::make_sunk<gtk::search_bar>()};
+	gtk::unique_ptr<gtk::search_entry> entry{gtk::make_sunk<gtk::search_entry>()};
+	webkit::find_controller *controller;
+
+	search_bar();
+
+	void begin_searching(webkit::web_view&);
+};
 
 // browser represents the top level widget which creates the browser.  It
 // contains a navigation bar with buttons to move the current visable page
@@ -52,11 +61,10 @@ private:
 		gtk::make_sunk<gtk::button>("add", GTK_ICON_SIZE_BUTTON)
 	};
 	gtk::unique_ptr<uri_entry> nav_entry{gtk::make_sunk<uri_entry>()};
+	search_bar page_search;
 	gtk::unique_ptr<gtk::notebook> nb{gtk::make_sunk<gtk::notebook>()};
-	gtk::unique_ptr<gtk::search_bar> page_search{gtk::make_sunk<gtk::search_bar>()};
-	gtk::unique_ptr<gtk::search_entry> page_search_entry{gtk::make_sunk<gtk::search_entry>()};
 	// Details about the currently shown page.
-	std::array<gtk::connection, 7> page_signals;
+	std::array<gtk::connection, 8> page_signals;
 	struct visable_tab {
 		unsigned int tab_index{0};
 		webkit::web_view *web_view{nullptr};
@@ -104,6 +112,7 @@ private:
 	void on_web_view_load_changed(webkit::web_view&, WebKitLoadEvent);
 	void on_web_view_notify_uri(webkit::web_view&, GParamSpec&);
 	void on_web_view_notify_title(webkit::web_view&, GParamSpec&);
+	void on_page_search_changed(gtk::search_entry&);
 
 	// Slots (static functions)
 	static void on_nav_entry_activate(uri_entry *entry, browser *b) {
@@ -158,6 +167,9 @@ private:
 	static void on_web_view_notify_title(webkit::web_view *web_view,
 		GParamSpec *param_spec, browser *b) {
 		b->on_web_view_notify_title(*web_view, *param_spec);
+	}
+	static void on_page_search_changed(gtk::search_entry *entry, browser *b) {
+		b->on_page_search_changed(*entry);
 	}
 };
 

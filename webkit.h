@@ -13,6 +13,8 @@
 
 namespace webkit {
 
+struct find_controller;
+
 namespace methods {
 
 template <class T, class Derived>
@@ -93,6 +95,12 @@ struct web_view : gtk::methods::widget<T, Derived> {
 		return webkit_web_view_get_back_forward_list(ptr());
 	}
 
+	find_controller * get_find_controller() {
+		return reinterpret_cast<find_controller *>(
+			webkit_web_view_get_find_controller(ptr())
+		);
+	}
+
 	bool get_tls_info(GTlsCertificate *& certificate, GTlsCertificateFlags& errors) {
 		return webkit_web_view_get_tls_info(ptr(), &certificate, &errors);
 	}
@@ -133,6 +141,29 @@ struct web_view : gtk::methods::widget<T, Derived> {
 	c_type * ptr() { return reinterpret_cast<c_type *>(this); }
 };
 
+template <class T, class Derived>
+struct find_controller : gtk::methods::gobject<T, Derived> {
+	using c_type = WebKitFindController;
+
+	static uint32_t default_find_options = WEBKIT_FIND_OPTIONS_CASE_INSENSITIVE;
+	static const unsigned int default_max_matches = 50;
+
+	void search(const std::string& search_text, uint32_t find_options = default_find_options,
+		unsigned int max_match_count = default_max_matches) {
+		search(search_text.c_str(), find_options, max_match_count);
+	}
+	void search(const char *search_text, uint32_t find_options = default_find_options,
+		unsigned int max_match_count = default_max_matches) {
+		webkit_find_controller_search(ptr(), search_text, find_options, max_match_count);
+	}
+
+	void search_finish() {
+		webkit_find_controller_search_finish(ptr());
+	}
+
+	c_type * ptr() { return reinterpret_cast<c_type *>(this); }
+};
+
 } // namespace methods
 
 struct web_context : methods::web_context<WebKitWebContext, web_context> {
@@ -159,6 +190,8 @@ struct web_view : methods::web_view<WebKitWebView, web_view> {
 		return create(uri.c_str());
 	}
 };
+
+struct find_controller : methods::find_controller<WebKitFindController, find_controller> {};
 
 } // namespace webkit
 

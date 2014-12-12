@@ -520,7 +520,7 @@ struct entry : methods::entry<GtkEntry, entry> {
 	}
 };
 
-struct search_entry : methods::search_entry<GtkSearchEntry, entry> {
+struct search_entry : methods::search_entry<GtkSearchEntry, search_entry> {
 	static auto create() {
 		return reinterpret_cast<search_entry *>(gtk_search_entry_new());
 	}

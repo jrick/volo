@@ -30,6 +30,17 @@ void guess_uri(std::string& uri) {
 	uri = "http://" + uri;
 }
 
+search_bar::search_bar() {
+	entry->set_size_request(200, -1);
+	bar->add(*entry);
+	bar->set_show_close_button(true);
+}
+
+void search_bar::begin_searching(webkit::web_view& wv) {
+	controller = wv.get_find_controller();
+	bar->set_search_mode(true);
+}
+
 browser::browser(const std::vector<const char *>&uris) {
 	back->set_can_focus(false);
 	fwd->set_can_focus(false);
@@ -62,10 +73,7 @@ browser::browser(const std::vector<const char *>&uris) {
 	nb->set_scrollable(true);
 	grid->add(*nb);
 
-	page_search_entry->set_size_request(200, -1);
-	page_search->add(*page_search_entry);
-	page_search->set_show_close_button(true);
-	grid->add(*page_search);
+	grid->add(*page_search.bar);
 
 	tabs.reserve(num_uris);
 	for (auto& uri : uris) {
@@ -171,7 +179,7 @@ bool browser::on_window_key_press_event(gtk::window& window, GdkEventKey& ev) {
 			window.destroy();
 			return true;
 		} else if (kv == GDK_KEY_f) {
-			page_search->set_search_mode(true);
+			page_search.begin_searching(*visable_tab.web_view);
 			return true;
 		} else if (kv >= GDK_KEY_1 && kv <= GDK_KEY_8) {
 			auto n = kv - GDK_KEY_1;
@@ -245,6 +253,11 @@ void browser::on_web_view_notify_title(webkit::web_view& wv, GParamSpec& param_s
 			break;
 		}
 	}
+}
+
+void browser::on_page_search_changed(gtk::search_entry& entry) {
+	auto text = entry.get_text();
+	page_search.controller->search(text);
 }
 
 int browser::open_new_tab(const char *uri) {
@@ -364,6 +377,7 @@ void browser::show_webview(unsigned int page_num, webkit::web_view& wv) {
 		wv.connect_load_changed(*this, on_web_view_load_changed),
 		nav_entry->connect_refresh_clicked(wv, ::on_nav_entry_refresh_clicked),
 		nb->connect_page_reordered(*this, on_notebook_page_reordered),
+		page_search.entry->connect_search_changed(*this, on_page_search_changed),
 	} };
 
 	// Grab URI entry focus if the shown tab is blank.
