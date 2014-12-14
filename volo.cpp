@@ -95,7 +95,7 @@ browser::browser(const std::vector<const char *>&uris) {
 }
 
 void browser::on_nav_entry_activate(uri_entry& entry) {
-	std::string uri = nav_entry->get_text();
+	auto uri = static_cast<std::string>(nav_entry->get_text());
 	guess_uri(uri);
 	visable_tab.web_view->load_uri(uri);
 	visable_tab.web_view->grab_focus();
