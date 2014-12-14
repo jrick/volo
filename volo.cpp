@@ -41,7 +41,7 @@ void search_bar::begin_searching(webkit::web_view& wv) {
 	bar->set_search_mode(true);
 }
 
-browser::browser(const std::vector<const char *>&uris) {
+browser::browser(const std::vector<const char *>& uris) {
 	back->set_can_focus(false);
 	fwd->set_can_focus(false);
 	auto histnav_style = histnav->get_style_context();
