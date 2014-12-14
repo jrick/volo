@@ -145,7 +145,7 @@ template <class T, class Derived>
 struct find_controller : gtk::methods::gobject<T, Derived> {
 	using c_type = WebKitFindController;
 
-	static uint32_t default_find_options = WEBKIT_FIND_OPTIONS_CASE_INSENSITIVE;
+	static const uint32_t default_find_options = WEBKIT_FIND_OPTIONS_CASE_INSENSITIVE;
 	static const unsigned int default_max_matches = 50;
 
 	void search(const std::string& search_text, uint32_t find_options = default_find_options,
