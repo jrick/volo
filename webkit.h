@@ -35,7 +35,9 @@ struct web_context : gtk::methods::gobject<T, Derived> {
 		webkit_web_context_set_process_model(ptr(), model);
 	}
 
-	c_type * ptr() { return reinterpret_cast<c_type *>(this); }
+	c_type * ptr() const {
+		return const_cast<c_type *>(reinterpret_cast<const c_type *>(this));
+	}
 };
 
 template <class T, class Derived>
@@ -51,12 +53,12 @@ struct web_view : gtk::methods::widget<T, Derived> {
 	}
 
 	// get_uri returns the URI of the web_view.
-	const char * get_uri() {
+	const char * get_uri() const {
 		auto uri = webkit_web_view_get_uri(ptr());
 		return uri ? uri : "";
 	}
 
-	const char * get_title() {
+	const char * get_title() const {
 		auto title = webkit_web_view_get_title(ptr());
 		return title ? title : "";
 	}
@@ -78,30 +80,30 @@ struct web_view : gtk::methods::widget<T, Derived> {
 
 	// can_go_back returns whether there is a previous history item the
 	// webview can navigate back to.
-	bool can_go_back() {
+	bool can_go_back() const {
 		return webkit_web_view_can_go_back(ptr());
 	}
 
 	// can_go_forward returns whether there is a next history item the
 	// webview can nagivate forward to.
-	bool can_go_forward() {
+	bool can_go_forward() const {
 		return webkit_web_view_can_go_forward(ptr());
 	}
 
 	// get_back_forward_list returnes the back forward list associated with
 	// the webview.  It is owned by webview and may not be destroyed by the
 	// caller.
-	WebKitBackForwardList * get_back_forward_list() {
+	WebKitBackForwardList * get_back_forward_list() const {
 		return webkit_web_view_get_back_forward_list(ptr());
 	}
 
-	find_controller * get_find_controller() {
+	find_controller * get_find_controller() const {
 		return reinterpret_cast<find_controller *>(
 			webkit_web_view_get_find_controller(ptr())
 		);
 	}
 
-	bool get_tls_info(GTlsCertificate *& certificate, GTlsCertificateFlags& errors) {
+	bool get_tls_info(GTlsCertificate *& certificate, GTlsCertificateFlags& errors) const {
 		return webkit_web_view_get_tls_info(ptr(), &certificate, &errors);
 	}
 
@@ -138,7 +140,9 @@ struct web_view : gtk::methods::widget<T, Derived> {
 		return this->connect("notify::uri", G_CALLBACK(slot), &obj);
 	}
 
-	c_type * ptr() { return reinterpret_cast<c_type *>(this); }
+	c_type * ptr() const {
+		return const_cast<c_type *>(reinterpret_cast<const c_type *>(this));
+	}
 };
 
 template <class T, class Derived>
@@ -161,7 +165,9 @@ struct find_controller : gtk::methods::gobject<T, Derived> {
 		webkit_find_controller_search_finish(ptr());
 	}
 
-	c_type * ptr() { return reinterpret_cast<c_type *>(this); }
+	c_type * ptr() {
+		return const_cast<c_type *>(reinterpret_cast<const c_type *>(this));
+	}
 };
 
 } // namespace methods

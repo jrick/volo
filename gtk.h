@@ -79,7 +79,9 @@ struct gobject : T {
 		g_signal_handler_disconnect(ptr(), handler_id);
 	}
 
-	c_type * ptr() { return reinterpret_cast<c_type *>(this); }
+	c_type * ptr() const {
+		return const_cast<c_type *>(reinterpret_cast<const c_type *>(this));
+	}
 };
 
 template <class T, class Derived>
@@ -93,7 +95,9 @@ struct style_context : gobject<T, Derived> {
 		gtk_style_context_add_class(ptr(), class_name);
 	}
 
-	c_type * ptr() { return reinterpret_cast<c_type *>(this); }
+	c_type * ptr() const {
+		return const_cast<c_type *>(reinterpret_cast<const c_type *>(this));
+	}
 };
 
 template <class T, class Derived>
@@ -141,7 +145,7 @@ struct widget : gobject<T, Derived> {
 		gtk_widget_grab_focus(ptr());
 	}
 
-	bool has_focus() {
+	bool has_focus() const {
 		return gtk_widget_has_focus(ptr());
 	}
 
@@ -149,7 +153,7 @@ struct widget : gobject<T, Derived> {
 		gtk_widget_destroy(ptr());
 	}
 
-	auto get_style_context() {
+	auto get_style_context() const {
 		return reinterpret_cast<gtk::style_context *>(
 			gtk_widget_get_style_context(ptr())
 		);
@@ -191,8 +195,10 @@ struct widget : gobject<T, Derived> {
 		return vtable->button_release_event(ptr(), &event);
 	}
 
-	c_type * ptr() { return reinterpret_cast<c_type *>(this); }
-	c_class_type * vtable() { return GTK_WIDGET_GET_CLASS(ptr()); }
+	c_type * ptr() const {
+		return const_cast<c_type *>(reinterpret_cast<const c_type *>(this));
+	}
+	const c_class_type * vtable() const { return GTK_WIDGET_GET_CLASS(ptr()); }
 };
 
 template <class T, class Derived>
@@ -204,7 +210,9 @@ struct container : widget<T, Derived> {
 		gtk_container_add(ptr(), w.ptr());
 	}
 
-	c_type * ptr() { return reinterpret_cast<c_type *>(this); }
+	c_type * ptr() const {
+		return const_cast<c_type *>(reinterpret_cast<const c_type *>(this));
+	}
 };
 
 template <class T, class Derived>
@@ -230,14 +238,16 @@ struct window : bin<T, Derived> {
 		gtk_window_set_titlebar(ptr(), titlebar.ptr());
 	}
 
-	c_type * ptr() { return reinterpret_cast<c_type *>(this); }
+	c_type * ptr() const {
+		return const_cast<c_type *>(reinterpret_cast<const c_type *>(this));
+	}
 };
 
 template <class T, class Derived>
 struct editable : gobject<T, Derived> {
 	using c_type = GtkEditable;
 
-	bool get_selection_bounds(int& start, int& end) {
+	bool get_selection_bounds(int& start, int& end) const {
 		return gtk_editable_get_selection_bounds(ptr(), &start, &end);
 	}
 
@@ -245,14 +255,16 @@ struct editable : gobject<T, Derived> {
 		gtk_editable_select_region(ptr(), start_pos, end_pos);
 	}
 
-	c_type * ptr() { return reinterpret_cast<c_type *>(this); }
+	c_type * ptr() const {
+		return const_cast<c_type *>(reinterpret_cast<const c_type *>(this));
+	}
 };
 
 template <class T, class Derived>
 struct entry : editable<widget<T, Derived>, Derived> {
 	using c_type = GtkEntry;
 
-	const char * get_text() {
+	const char * get_text() const {
 		return gtk_entry_get_text(ptr());
 	}
 
@@ -283,7 +295,9 @@ struct entry : editable<widget<T, Derived>, Derived> {
 		return this->connect("activate", G_CALLBACK(slot), &obj);
 	}
 
-	c_type * ptr() { return reinterpret_cast<c_type *>(this); }
+	c_type * ptr() const {
+		return const_cast<c_type *>(reinterpret_cast<const c_type *>(this));
+	}
 };
 
 template <class T, class Derived>
@@ -299,7 +313,9 @@ struct search_entry : entry<T, Derived> {
 		return this->connect("search-changed", G_CALLBACK(slot), &obj);
 	}
 
-	c_type * ptr() { return reinterpret_cast<c_type *>(this); }
+	c_type * ptr() const {
+		return const_cast<c_type *>(reinterpret_cast<const c_type *>(this));
+	}
 };
 
 template <class T, class Derived>
@@ -320,7 +336,9 @@ struct label : misc<T, Derived> {
 		gtk_label_set_ellipsize(ptr(), mode);
 	}
 
-	c_type * ptr() { return reinterpret_cast<c_type *>(this); }
+	c_type * ptr() const {
+		return const_cast<c_type *>(reinterpret_cast<const c_type *>(this));
+	}
 };
 
 template <class T, class Derived>
@@ -340,7 +358,9 @@ struct button : bin<T, Derived> {
 		return this->connect("clicked", G_CALLBACK(slot), &obj);
 	}
 
-	c_type * ptr() { return reinterpret_cast<c_type *>(this); }
+	c_type * ptr() const {
+		return const_cast<c_type *>(reinterpret_cast<const c_type *>(this));
+	}
 };
 
 template <class T, class Derived>
@@ -361,7 +381,9 @@ struct box : container<T, Derived> {
 		gtk_box_pack_end(ptr(), child.ptr(), expand, fill, padding);
 	}
 
-	c_type * ptr() { return reinterpret_cast<c_type *>(this); }
+	c_type * ptr() const {
+		return const_cast<c_type *>(reinterpret_cast<const c_type *>(this));
+	}
 };
 
 template <class T, class Derived>
@@ -372,7 +394,9 @@ struct orientable : gobject<T, Derived> {
 		gtk_orientable_set_orientation(ptr(), orientation);
 	}
 
-	c_type * ptr() { return reinterpret_cast<c_type *>(this); }
+	c_type * ptr() const {
+		return const_cast<c_type *>(reinterpret_cast<const c_type *>(this));
+	}
 };
 
 template <class T, class Derived>
@@ -387,11 +411,11 @@ struct notebook : container<T, Derived> {
 		return gtk_notebook_append_page(ptr(), child.ptr(), tab_label.ptr());
 	}
 
-	int get_current_page() {
+	int get_current_page() const {
 		return gtk_notebook_get_current_page(ptr());
 	}
 
-	int get_n_pages() {
+	int get_n_pages() const {
 		return gtk_notebook_get_n_pages(ptr());
 	}
 
@@ -442,7 +466,9 @@ struct notebook : container<T, Derived> {
 		return this->connect("page-reordered", G_CALLBACK(slot), &obj);
 	}
 
-	c_type * ptr() { return reinterpret_cast<c_type *>(this); }
+	c_type * ptr() const {
+		return const_cast<c_type *>(reinterpret_cast<const c_type *>(this));
+	}
 };
 
 template <class T, class Derived>
@@ -468,7 +494,9 @@ struct header_bar : container<T, Derived> {
 		gtk_header_bar_set_show_close_button(ptr(), setting);
 	}
 
-	c_type * ptr() { return reinterpret_cast<c_type *>(this); }
+	c_type * ptr() const {
+		return const_cast<c_type *>(reinterpret_cast<const c_type *>(this));
+	}
 };
 
 template <class T, class Derived>
@@ -491,7 +519,9 @@ struct search_bar : bin<T, Derived> {
 		gtk_search_bar_set_show_close_button(ptr(), visible);
 	}
 
-	c_type * ptr() { return reinterpret_cast<c_type *>(this); }
+	c_type * ptr() const {
+		return const_cast<c_type *>(reinterpret_cast<const c_type *>(this));
+	}
 };
 
 } // namespace methods
