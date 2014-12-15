@@ -18,7 +18,7 @@ const std::array<std::string, 2> recognized_uri_schemes = { {
 // has_prefix returns whether p is a prefix of s.
 template <typename T>
 bool has_prefix(const T& s, const T& p) {
-	return s.size() >= p.size() && std::equal(p.begin(), p.end(), s.begin());
+	return s.size() >= p.size() && std::equal(std::cbegin(p), std::cend(p), std::cbegin(s));
 }
 
 void guess_uri(std::string& uri) {
@@ -169,7 +169,7 @@ bool browser::on_window_key_press_event(gtk::window& window, GdkEventKey& ev) {
 			nb->set_current_page(n);
 			return true;
 		} else if (kv == GDK_KEY_w) {
-			tabs.erase(tabs.begin() + visable_tab.tab_index);
+			tabs.erase(tabs.cbegin() + visable_tab.tab_index);
 			if (tabs.size() == 0) {
 				window.destroy();
 			}
@@ -247,12 +247,10 @@ void browser::on_web_view_notify_title(webkit::web_view& wv, GParamSpec& param_s
 
 	// If the notified webview is not the currently-shown tab, we must
 	// search for the correct tab title to modify.
-	for (auto& tab : tabs) {
-		if (tab.wv.get() == &wv) {
-			tab.tab_title->set_text(title);
-			break;
-		}
-	}
+	auto tab = std::find_if(std::cbegin(tabs), std::cend(tabs), [&wv](auto& t) {
+		return t.wv.get() == &wv;
+	});
+	tab->tab_title->set_text(title);
 }
 
 void browser::on_page_search_changed(gtk::search_entry& entry) {
@@ -286,27 +284,21 @@ void browser::show_window() {
 }
 
 void browser::on_tab_close_clicked(gtk::button& tab_close) {
-	for (auto it = tabs.begin(), ite = tabs.end(); it != ite; ++it) {
-		// Compare using pointer equality.
-		if (it->tab_close->ptr() != &tab_close) {
-			continue;
-		}
-		auto removed_index = std::distance(tabs.begin(), it);
-		tabs.erase(it);
+	auto removed_tab = std::find_if(std::cbegin(tabs), std::cend(tabs),
+		[&tab_close](auto& t) { return t.tab_close.get() == &tab_close; });
+	auto removed_index = std::distance(std::cbegin(tabs), removed_tab);
+	tabs.erase(removed_tab);
 
-		if (tabs.size() == 0) {
-			window->destroy();
-			break;
-		}
+	if (tabs.size() == 0) {
+		window->destroy();
+		return;
+	}
 
-		// If the removed tab had an index smaller than the visable tab,
-		// the visable tab index must be decremented.
-		auto prev_index = visable_tab.tab_index;
-		if (removed_index < prev_index) {
-			visable_tab.tab_index = prev_index - 1;
-		}
-
-		break;
+	// If the removed tab had an index smaller than the visable tab, the
+	// visable tab index must be decremented.
+	auto prev_index = visable_tab.tab_index;
+	if (removed_index < prev_index) {
+		visable_tab.tab_index = prev_index - 1;
 	}
 }
 
@@ -403,7 +395,7 @@ void browser::switch_page(unsigned int page_num) {
 		sig.disconnect();
 	}
 
-	show_webview(page_num, *tabs.at(page_num).wv);
+	show_webview(page_num, *tabs[page_num].wv);
 }
 
 
