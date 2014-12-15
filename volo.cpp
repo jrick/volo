@@ -239,6 +239,10 @@ void browser::on_web_view_load_changed(webkit::web_view& wv, WebKitLoadEvent loa
 
 void browser::on_web_view_notify_title(webkit::web_view& wv, GParamSpec& param_spec) {
 	auto title = wv.get_title();
+
+	// Common case: If the webview emitting the notify::title signal is the
+	// currently shown tab, set both the tab title label and the window title
+	// with the webview title.
 	if (visable_tab.web_view == &wv) {
 		window->set_title(title);
 		tabs[visable_tab.tab_index].tab_title->set_text(title);
@@ -246,10 +250,10 @@ void browser::on_web_view_notify_title(webkit::web_view& wv, GParamSpec& param_s
 	}
 
 	// If the notified webview is not the currently-shown tab, we must
-	// search for the correct tab title to modify.
-	auto tab = std::find_if(std::cbegin(tabs), std::cend(tabs), [&wv](auto& t) {
-		return t.wv.get() == &wv;
-	});
+	// search for the correct tab title to modify.  The window title is
+	// not modified for a webview in an nonvisable tab.
+	auto tab = std::find_if(std::cbegin(tabs), std::cend(tabs),
+		[&wv](auto& t) { return t.wv.get() == &wv; });
 	tab->tab_title->set_text(title);
 }
 
