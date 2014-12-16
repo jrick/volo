@@ -154,7 +154,7 @@ bool browser::on_window_key_press_event(gtk::window& window, GdkEventKey& ev) {
 
 	// Let the window begin handling the event.  This is done before some
 	// of the Ctrl keybindings below to allow various events which modify
-	// text fields (such as ^W to delete the preivous word) to be handled
+	// text fields (such as ^W to delete the previous word) to be handled
 	// by the child, rather than closing the current tab.
 	if (window.key_press_event(ev)) {
 		return true;
