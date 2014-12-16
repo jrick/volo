@@ -5,6 +5,7 @@
 #ifndef _GTK_H
 #define _GTK_H
 
+#include <memory>
 #include <string>
 #include <utility>
 
