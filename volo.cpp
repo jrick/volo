@@ -178,6 +178,9 @@ bool browser::on_window_key_press_event(gtk::window& window, GdkEventKey& ev) {
 			tabs.clear();
 			window.destroy();
 			return true;
+		} else if (kv == GDK_KEY_r) {
+			visable_tab.web_view->reload();
+			return true;
 		} else if (kv == GDK_KEY_f) {
 			page_search.begin_searching(*visable_tab.web_view);
 			return true;
