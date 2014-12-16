@@ -359,7 +359,11 @@ void browser::show_webview(unsigned int page_num, webkit::web_view& wv) {
 
 	// Update navbar/titlebar with the current state of the webview being
 	// shown.
-	window->set_title(wv.get_title());
+	auto title = wv.get_title();
+	if (!strcmp(title, "")) {
+		title = "volo";
+	}
+	window->set_title(title);
 	update_histnav(wv);
 	auto uri = wv.get_uri();
 	nav_entry->set_uri(uri);
