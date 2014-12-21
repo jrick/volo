@@ -30,7 +30,10 @@ void guess_uri(std::string& uri) {
 	uri = "http://" + uri;
 }
 
-search_bar::search_bar() {
+search_bar::search_bar() :
+	bar{gtk::make_sunk<gtk::search_bar>()},
+	entry{gtk::make_sunk<gtk::search_entry>()} {
+
 	entry->set_size_request(200, -1);
 	bar->add(*entry);
 	bar->set_show_close_button(true);
@@ -41,7 +44,16 @@ void search_bar::begin_searching(webkit::web_view& wv) {
 	bar->set_search_mode(true);
 }
 
-browser::browser(const std::vector<const char *>& uris) {
+browser::browser(const std::vector<const char *>& uris) :
+	window{gtk::make_sunk<gtk::window>()},
+	navbar{gtk::make_sunk<gtk::header_bar>()},
+	histnav{gtk::make_sunk<gtk::box>()},
+	back{gtk::make_sunk<gtk::button>("go-previous", GTK_ICON_SIZE_BUTTON)},
+	fwd{gtk::make_sunk<gtk::button>("go-next", GTK_ICON_SIZE_BUTTON)},
+	new_tab{gtk::make_sunk<gtk::button>("add", GTK_ICON_SIZE_BUTTON)},
+	nav_entry{gtk::make_sunk<uri_entry>()},
+	nb{gtk::make_sunk<gtk::notebook>()} {
+
 	back->set_can_focus(false);
 	fwd->set_can_focus(false);
 	auto histnav_style = histnav->get_style_context();
@@ -208,7 +220,8 @@ void browser::on_window_destroy(gtk::window& w) {
 
 browser_tab::browser_tab(const char *uri) :
 	wv{gtk::make_sunk<webkit::web_view>(uri)},
-	tab_title{gtk::make_sunk<gtk::label>("New tab")} {
+	tab_title{gtk::make_sunk<gtk::label>("New tab")},
+	tab_close{gtk::make_sunk<gtk::button>("window-close", GTK_ICON_SIZE_BUTTON)} {
 
 	tab_title->set_can_focus(false);
 	tab_title->set_hexpand(true);

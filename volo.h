@@ -19,17 +19,15 @@ namespace volo {
 // that is not owned by this struct.
 struct browser_tab {
 	gtk::unique_ptr<webkit::web_view> wv;
-	gtk::unique_ptr<gtk::label> tab_title{gtk::make_sunk<gtk::label>()};
-	gtk::unique_ptr<gtk::button> tab_close{
-		gtk::make_sunk<gtk::button>("window-close", GTK_ICON_SIZE_BUTTON)
-	};
+	gtk::unique_ptr<gtk::label> tab_title;
+	gtk::unique_ptr<gtk::button> tab_close;
 
 	browser_tab(const char *);
 };
 
 struct search_bar {
-	gtk::unique_ptr<gtk::search_bar> bar{gtk::make_sunk<gtk::search_bar>()};
-	gtk::unique_ptr<gtk::search_entry> entry{gtk::make_sunk<gtk::search_entry>()};
+	gtk::unique_ptr<gtk::search_bar> bar;
+	gtk::unique_ptr<gtk::search_entry> entry;
 	webkit::find_controller *controller;
 
 	search_bar();
@@ -48,21 +46,15 @@ struct search_bar {
 class browser {
 private:
 	std::vector<browser_tab> tabs;
-	gtk::unique_ptr<gtk::window> window{gtk::make_sunk<gtk::window>()};
-	gtk::unique_ptr<gtk::header_bar> navbar{gtk::make_sunk<gtk::header_bar>()};
-	gtk::unique_ptr<gtk::box> histnav{gtk::make_sunk<gtk::box>()};
-	gtk::unique_ptr<gtk::button> back{
-		gtk::make_sunk<gtk::button>("go-previous", GTK_ICON_SIZE_BUTTON)
-	};
-	gtk::unique_ptr<gtk::button> fwd{
-		gtk::make_sunk<gtk::button>("go-next", GTK_ICON_SIZE_BUTTON)
-	};
-	gtk::unique_ptr<gtk::button> new_tab{
-		gtk::make_sunk<gtk::button>("add", GTK_ICON_SIZE_BUTTON)
-	};
-	gtk::unique_ptr<uri_entry> nav_entry{gtk::make_sunk<uri_entry>()};
-	search_bar page_search;
-	gtk::unique_ptr<gtk::notebook> nb{gtk::make_sunk<gtk::notebook>()};
+	gtk::unique_ptr<gtk::window> window;
+	gtk::unique_ptr<gtk::header_bar> navbar;
+	gtk::unique_ptr<gtk::box> histnav;
+	gtk::unique_ptr<gtk::button> back;
+	gtk::unique_ptr<gtk::button> fwd;
+	gtk::unique_ptr<gtk::button> new_tab;
+	gtk::unique_ptr<uri_entry> nav_entry;
+	gtk::unique_ptr<gtk::notebook> nb;
+	search_bar page_search{};
 	// Details about the currently shown page.
 	std::array<gtk::connection, 8> page_signals;
 	struct visable_tab {
